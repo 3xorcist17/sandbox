@@ -398,7 +398,7 @@ if 'starting_grid' not in st.session_state:
 if 'grid_positions' not in st.session_state:
     st.session_state.grid_positions = {}
 
-# Functions (unchanged)
+# Functions (modified)
 def calculate_driver_rating(driver):
     points = st.session_state.total_driver_points[driver]
     wins = st.session_state.driver_wins[driver]
@@ -507,8 +507,14 @@ def calculate_starting_grid():
         if i not in st.session_state.starting_grid:
             st.session_state.starting_grid.append(i)
 
-def get_progress_multiplier(grid_position):
-    """Get progress multiplier based on grid position"""
+def get_progress_multiplier(driver):
+    """Get progress multiplier based on grid position (if qualifying was done)"""
+    # If no qualifying was done, everyone gets equal treatment
+    if not st.session_state.qualifying_times:
+        return 1.00
+    
+    # If qualifying was done, use grid position
+    grid_position = st.session_state.grid_positions.get(driver, 20)
     if grid_position <= 3:
         return 1.10  # +10% faster
     elif grid_position <= 6:
@@ -520,7 +526,7 @@ def get_progress_multiplier(grid_position):
     else:
         return 0.90  # -10% slower
 
-# Create tabs - Only Qualifying and Race
+# Create tabs - Qualifying and Race
 tab1, tab2 = st.tabs([
     "Qualifying",
     "Race & Results"
@@ -530,7 +536,7 @@ tab1, tab2 = st.tabs([
 with tab1:
     st.markdown('<div class="qualifying-container">', unsafe_allow_html=True)
     st.markdown("### 🏁 Qualifying Session")
-    st.markdown("*Run each driver's qualifying lap - lowest time gets pole position!*")
+    st.markdown("*Run each driver's qualifying lap - lowest time gets pole position! (Optional)*")
     
     # Update qualifying progress for all running drivers
     update_qualifying_progress()
@@ -669,34 +675,17 @@ with tab1:
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Tab 2: Race & Results (modified to use qualifying grid)
+# Tab 2: Race & Results (modified to work with or without qualifying)
 with tab2:
-    # Check if qualifying is completed
-    qualifying_done = len(st.session_state.qualifying_times) > 0
+    # Show race status information
+    if st.session_state.qualifying_times:
+        st.info("🏁 Qualifying completed! Grid positions will affect race performance.")
+    else:
+        st.info("⚡ No qualifying done - all drivers start with equal chances!")
     
-    if not qualifying_done:
-        st.warning("⚠️ Please complete qualifying first before starting the race!")
-    
-    if st.button("🏁 Start Race", disabled=not qualifying_done):
+    if st.button("🏁 Start Race"):
+        # Always start all drivers at 0 progression
         st.session_state.progress_values = [0] * 20
-        
-        # Use qualifying grid positions instead of random start
-        if st.session_state.starting_grid:
-            for i, driver_info in enumerate(drivers):
-                driver = driver_info['driver']
-                # Find grid position for this driver
-                grid_position = st.session_state.grid_positions.get(driver, 20)
-                
-                # Apply grid position multiplier as starting advantage
-                multiplier = get_progress_multiplier(grid_position)
-                headstart = st.session_state.driver_headstarts.get(driver, 1)
-                st.session_state.progress_values[i] = min(100, headstart * multiplier)
-        else:
-            # Fallback to original logic if no qualifying
-            for i, driver_info in enumerate(drivers):
-                driver = driver_info['driver']
-                headstart = st.session_state.driver_headstarts.get(driver, 1)
-                st.session_state.progress_values[i] = min(100, headstart)
         
         st.session_state.finish_order = []
         st.session_state.race_finished = False
@@ -779,12 +768,11 @@ with tab2:
             
             for i in range(20):
                 if st.session_state.progress_values[i] < 100:
-                    # Apply grid position multiplier
+                    # Apply grid position multiplier (if qualifying was done)
                     driver = drivers[i]['driver']
-                    grid_position = st.session_state.grid_positions.get(driver, 20)
-                    multiplier = get_progress_multiplier(grid_position)
+                    multiplier = get_progress_multiplier(driver)
                     
-                    base_increment = random.randint(0, 4)
+                    base_increment = random.randint(1, 4)
                     increment = base_increment * multiplier
                     st.session_state.progress_values[i] = min(100, st.session_state.progress_values[i] + increment)
                     
