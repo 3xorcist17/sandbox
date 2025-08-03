@@ -389,8 +389,10 @@ if 'driver_headstarts' not in st.session_state:
 # Qualifying session state
 if 'qualifying_times' not in st.session_state:
     st.session_state.qualifying_times = {}
-if 'qualifying_completed' not in st.session_state:
-    st.session_state.qualifying_completed = {}
+if 'qualifying_progress' not in st.session_state:
+    st.session_state.qualifying_progress = [0] * 20
+if 'qualifying_running' not in st.session_state:
+    st.session_state.qualifying_running = [False] * 20
 if 'starting_grid' not in st.session_state:
     st.session_state.starting_grid = list(range(20))  # Default order
 if 'grid_positions' not in st.session_state:
@@ -441,22 +443,45 @@ def get_current_leaderboard():
     return finished_drivers + racing_drivers
 
 def run_qualifying_lap(driver_index):
-    """Run a qualifying lap for a specific driver"""
+    """Start or continue qualifying lap for a specific driver"""
     driver_info = drivers[driver_index]
     driver = driver_info['driver']
     
-    # Generate a random lap time (in seconds, between 75-85 seconds for realism)
-    base_time = 80.0
-    variation = random.uniform(-5.0, 5.0)  # ±5 seconds variation
-    driver_skill = random.uniform(-2.0, 2.0)  # Driver skill factor
+    if not st.session_state.qualifying_running[driver_index]:
+        # Start new qualifying lap
+        st.session_state.qualifying_progress[driver_index] = 0
+        st.session_state.qualifying_running[driver_index] = True
     
-    lap_time = base_time + variation + driver_skill
-    lap_time = round(lap_time, 3)
-    
-    st.session_state.qualifying_times[driver] = lap_time
-    st.session_state.qualifying_completed[driver] = True
-    
-    return lap_time
+    return True
+
+def update_qualifying_progress():
+    """Update qualifying progress for all running drivers"""
+    for i in range(20):
+        if st.session_state.qualifying_running[i]:
+            if st.session_state.qualifying_progress[i] < 100:
+                increment = random.randint(1, 6)  # Qualifying pace variation
+                st.session_state.qualifying_progress[i] = min(100, st.session_state.qualifying_progress[i] + increment)
+            
+            if st.session_state.qualifying_progress[i] >= 100:
+                # Calculate lap time based on completion
+                driver = drivers[i]['driver']
+                # Generate time between 78-82 seconds with some driver skill variation
+                base_time = 80.0
+                skill_variation = random.uniform(-2.0, 2.0)
+                random_variation = random.uniform(-1.5, 1.5)
+                
+                lap_time = base_time + skill_variation + random_variation
+                lap_time = round(lap_time, 3)
+                
+                # Only update if it's faster than current best or first time
+                if driver not in st.session_state.qualifying_times or lap_time < st.session_state.qualifying_times[driver]:
+                    st.session_state.qualifying_times[driver] = lap_time
+                
+                # Reset for next attempt
+                st.session_state.qualifying_progress[i] = 0
+                st.session_state.qualifying_running[i] = False
+                
+                calculate_starting_grid()
 
 def calculate_starting_grid():
     """Calculate starting grid based on qualifying times"""
@@ -471,7 +496,6 @@ def calculate_starting_grid():
         st.session_state.grid_positions[driver] = position
     
     # Update starting grid order
-    driver_names = [driver['driver'] for driver in drivers]
     st.session_state.starting_grid = []
     
     for driver, _ in sorted_times:
@@ -496,28 +520,27 @@ def get_progress_multiplier(grid_position):
     else:
         return 0.90  # -10% slower
 
-# Create tabs - added Qualifying tab
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+# Create tabs - Only Qualifying and Race
+tab1, tab2 = st.tabs([
     "Qualifying",
-    "Race & Results",
-    "Drivers' Championship",
-    "Constructors' Championship",
-    "Team & Driver Stats",
-    "Driver Upgrades",
-    "Season Summary"
+    "Race & Results"
 ])
 
 # Tab 1: Qualifying
 with tab1:
     st.markdown('<div class="qualifying-container">', unsafe_allow_html=True)
     st.markdown("### 🏁 Qualifying Session")
+    st.markdown("*Run each driver's qualifying lap - lowest time gets pole position!*")
+    
+    # Update qualifying progress for all running drivers
+    update_qualifying_progress()
     
     col1, col2 = st.columns([2, 1])
     
     with col1:
         st.markdown("**Individual Qualifying Runs**")
         
-        # Display all drivers with their qualifying buttons
+        # Display all drivers with their qualifying progress bars
         for i, driver_info in enumerate(drivers):
             driver = driver_info['driver']
             team = driver_info['team']
@@ -533,33 +556,51 @@ with tab1:
             else:
                 light_color = base_color
             
-            # Check if driver has completed qualifying
-            completed = st.session_state.qualifying_completed.get(driver, False)
-            lap_time = st.session_state.qualifying_times.get(driver, 0)
+            # Get current status
+            progress = st.session_state.qualifying_progress[i]
+            is_running = st.session_state.qualifying_running[i]
+            best_time = st.session_state.qualifying_times.get(driver, None)
             grid_pos = st.session_state.grid_positions.get(driver, "-")
             
-            if completed:
-                status_text = f"{lap_time:.3f}s"
+            if is_running:
+                status_text = f"{progress:.1f}%"
+                status_subtext = "Qualifying..."
+                animation_class = "racing-animation"
+                button_text = "🏃 Running..."
+                button_disabled = True
+            elif best_time:
+                status_text = f"{best_time:.3f}s"
                 status_subtext = f"Grid: P{grid_pos}"
-                button_text = "✓ Completed"
+                animation_class = ""
+                button_text = "🔄 Improve"
+                button_disabled = False
             else:
                 status_text = "Not Set"
                 status_subtext = "Ready to Qualify"
+                animation_class = ""
                 button_text = "🏁 Qualify"
+                button_disabled = False
             
-            # Create qualifying row
+            # Create qualifying row with progress bar
             col_driver, col_button = st.columns([4, 1])
             
             with col_driver:
                 qualifying_html = f'''
-                <div class="qualifying-row" 
+                <div class="driver-row {animation_class}" 
                      style="--driver-color: {base_color}; --driver-color-light: {light_color};">
                     <div class="grid-position">{grid_pos if grid_pos != "-" else "—"}</div>
                     <div class="driver-info">
                         <div class="driver-name">{driver}</div>
                         <div class="team-name">{team}</div>
                     </div>
-                    <div class="progress-status" style="margin-left: auto;">
+                    <div class="progress-container">
+                        <div class="custom-progress-bar">
+                            <div class="progress-fill" style="width: {progress}%;">
+                            </div>
+                            <div class="progress-text">{progress:.1f}%</div>
+                        </div>
+                    </div>
+                    <div class="progress-status">
                         <div class="status-text">{status_text}</div>
                         <div class="status-subtext">{status_subtext}</div>
                     </div>
@@ -568,9 +609,8 @@ with tab1:
                 st.markdown(qualifying_html, unsafe_allow_html=True)
             
             with col_button:
-                if st.button(button_text, key=f"qualify_{driver}", disabled=completed):
-                    lap_time = run_qualifying_lap(i)
-                    calculate_starting_grid()
+                if st.button(button_text, key=f"qualify_{driver}", disabled=button_disabled):
+                    run_qualifying_lap(i)
                     st.rerun()
     
     with col2:
@@ -605,12 +645,26 @@ with tab1:
         else:
             st.info("No qualifying times set yet")
     
-    # Reset qualifying button
-    if st.button("🔄 Reset Qualifying"):
-        st.session_state.qualifying_times = {}
-        st.session_state.qualifying_completed = {}
-        st.session_state.grid_positions = {}
-        st.session_state.starting_grid = list(range(20))
+    # Control buttons
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🔄 Reset All Qualifying"):
+            st.session_state.qualifying_times = {}
+            st.session_state.qualifying_progress = [0] * 20
+            st.session_state.qualifying_running = [False] * 20
+            st.session_state.grid_positions = {}
+            st.session_state.starting_grid = list(range(20))
+            st.rerun()
+    
+    with col2:
+        if st.button("⏹️ Stop All Running"):
+            st.session_state.qualifying_running = [False] * 20
+            st.session_state.qualifying_progress = [0] * 20
+            st.rerun()
+    
+    # Auto-refresh for qualifying progress
+    if any(st.session_state.qualifying_running):
+        time.sleep(0.1)
         st.rerun()
     
     st.markdown('</div>', unsafe_allow_html=True)
@@ -864,7 +918,8 @@ with tab2:
                 
                 # Reset qualifying after race completion
                 st.session_state.qualifying_times = {}
-                st.session_state.qualifying_completed = {}
+                st.session_state.qualifying_progress = [0] * 20
+                st.session_state.qualifying_running = [False] * 20
                 st.session_state.grid_positions = {}
                 st.session_state.starting_grid = list(range(20))
                 break
@@ -936,221 +991,3 @@ with tab2:
             st.write("No races completed yet.")
             st.markdown('</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
-
-# Tab 3: Drivers' Championship (unchanged from original)
-with tab3:
-    st.markdown("### 🏆 Drivers' Championship Standings")
-    
-    driver_standings = []
-    for driver_info in drivers:
-        driver = driver_info['driver']
-        team = driver_info['team']
-        points = st.session_state.total_driver_points[driver]
-        wins = st.session_state.driver_wins[driver]
-        podiums = st.session_state.driver_podiums[driver]
-        driver_standings.append({
-            "Position": 0,
-            "Driver": driver,
-            "Team": team,
-            "Points": points,
-            "Wins": wins,
-            "Podiums": podiums
-        })
-    
-    driver_standings.sort(key=lambda x: (-x["Points"], -x["Wins"], -x["Podiums"]))
-    
-    for i, standing in enumerate(driver_standings):
-        standing["Position"] = i + 1
-    
-    st.markdown('<div class="leaderboard">', unsafe_allow_html=True)
-    for standing in driver_standings:
-        position = standing["Position"]
-        card_class = "position-1" if position == 1 else "position-2" if position == 2 else "position-3" if position == 3 else ""
-        
-        medal = "🥇" if position == 1 else "🥈" if position == 2 else "🥉" if position == 3 else f"P{position}"
-        
-        st.markdown(f'''
-        <div class="leaderboard-item {card_class}">
-            <span>{medal} {standing["Driver"]} ({standing["Team"]})</span>
-            <span>{standing["Points"]} pts | {standing["Wins"]} wins | {standing["Podiums"]} podiums</span>
-        </div>
-        ''', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# Tab 4: Constructors' Championship (unchanged from original)
-with tab4:
-    st.markdown("### 🏁 Constructors' Championship Standings")
-    
-    team_standings = []
-    for team in teams_drivers:
-        points = st.session_state.total_team_points[team]
-        wins = st.session_state.team_wins[team]
-        podiums = st.session_state.team_podiums[team]
-        team_standings.append({
-            "Position": 0,
-            "Team": team,
-            "Points": points,
-            "Wins": wins,
-            "Podiums": podiums
-        })
-    
-    team_standings.sort(key=lambda x: (-x["Points"], -x["Wins"], -x["Podiums"]))
-    
-    for i, standing in enumerate(team_standings):
-        standing["Position"] = i + 1
-    
-    st.markdown('<div class="leaderboard">', unsafe_allow_html=True)
-    for standing in team_standings:
-        position = standing["Position"]
-        card_class = "position-1" if position == 1 else "position-2" if position == 2 else "position-3" if position == 3 else ""
-        
-        medal = "🥇" if position == 1 else "🥈" if position == 2 else "🥉" if position == 3 else f"P{position}"
-        
-        st.markdown(f'''
-        <div class="leaderboard-item {card_class}">
-            <span>{medal} {standing["Team"]}</span>
-            <span>{standing["Points"]} pts | {standing["Wins"]} wins | {standing["Podiums"]} podiums</span>
-        </div>
-        ''', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-
-# Tab 5: Team & Driver Stats (unchanged from original)
-with tab5:
-    st.markdown("### 📊 Team & Driver Statistics")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("#### Top Performing Drivers")
-        top_drivers = sorted(drivers, key=lambda x: st.session_state.total_driver_points[x['driver']], reverse=True)[:5]
-        
-        for i, driver_info in enumerate(top_drivers, 1):
-            driver = driver_info['driver']
-            team = driver_info['team']
-            points = st.session_state.total_driver_points[driver]
-            wins = st.session_state.driver_wins[driver]
-            
-            st.markdown(f'''
-            <div class="rating-card">
-                <div class="rating-header">
-                    <div>
-                        <div class="driver-name">{i}. {driver}</div>
-                        <div class="team-name">{team}</div>
-                    </div>
-                    <div class="rating-score">{points}</div>
-                </div>
-                <div class="rating-details">
-                    <span>Points: {points}</span>
-                    <span>Wins: {wins}</span>
-                </div>
-            </div>
-            ''', unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("#### Top Performing Teams")
-        top_teams = sorted(teams_drivers.keys(), key=lambda x: st.session_state.total_team_points[x], reverse=True)[:5]
-        
-        for i, team in enumerate(top_teams, 1):
-            points = st.session_state.total_team_points[team]
-            wins = st.session_state.team_wins[team]
-            drivers_list = teams_drivers[team]
-            
-            st.markdown(f'''
-            <div class="rating-card">
-                <div class="rating-header">
-                    <div>
-                        <div class="driver-name">{i}. {team}</div>
-                        <div class="team-name">{", ".join(drivers_list)}</div>
-                    </div>
-                    <div class="rating-score">{points}</div>
-                </div>
-                <div class="rating-details">
-                    <span>Points: {points}</span>
-                    <span>Wins: {wins}</span>
-                </div>
-            </div>
-            ''', unsafe_allow_html=True)
-
-# Tab 6: Driver Upgrades (unchanged from original)
-with tab6:
-    st.markdown("### ⚙️ Driver Upgrades")
-    st.markdown("Adjust driver performance for the next race:")
-    
-    for driver_info in drivers:
-        driver = driver_info['driver']
-        team = driver_info['team']
-        current_headstart = st.session_state.driver_headstarts.get(driver, 1)
-        
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.markdown(f"**{driver}** ({team})")
-        with col2:
-            new_headstart = st.slider(
-                "Performance", 
-                min_value=0.5, 
-                max_value=3.0, 
-                value=current_headstart, 
-                step=0.1,
-                key=f"headstart_{driver}",
-                format="%.1fx"
-            )
-            st.session_state.driver_headstarts[driver] = new_headstart
-
-# Tab 7: Season Summary (unchanged from original)
-with tab7:
-    st.markdown("### 📈 Season Summary")
-    
-    if st.session_state.races_completed > 0:
-        st.markdown(f"**Season Progress: {st.session_state.races_completed} races completed**")
-        
-        # Championship leader
-        if drivers:
-            champion = max(drivers, key=lambda x: st.session_state.total_driver_points[x['driver']])
-            champion_points = st.session_state.total_driver_points[champion['driver']]
-            
-            st.markdown(f'''
-            <div class="rating-card rating-card-gold">
-                <div class="rating-header">
-                    <div>
-                        <div class="driver-name">🏆 Championship Leader</div>
-                        <div class="team-name">{champion['driver']} ({champion['team']})</div>
-                    </div>
-                    <div class="rating-score">{champion_points}</div>
-                </div>
-            </div>
-            ''', unsafe_allow_html=True)
-        
-        # Recent race results
-        if st.session_state.race_summaries:
-            st.markdown("#### Recent Race Results")
-            recent_races = st.session_state.race_summaries[-5:]  # Last 5 races
-            
-            st.markdown('<div class="leaderboard">', unsafe_allow_html=True)
-            for race in reversed(recent_races):
-                st.markdown(f'''
-                <div class="leaderboard-item">
-                    <span>Race {race['Race']}</span>
-                    <span>🥇 {race['P1']} | 🥈 {race['P2']} | 🥉 {race['P3']}</span>
-                </div>
-                ''', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-    else:
-        st.info("No races completed yet. Start your first race to see season statistics!")
-    
-    # Reset season button
-    if st.button("🔄 Reset Season"):
-        st.session_state.total_team_points = {team: 0 for team in teams_drivers}
-        st.session_state.total_driver_points = {driver['driver']: 0 for driver in drivers}
-        st.session_state.team_wins = {team: 0 for team in teams_drivers}
-        st.session_state.team_podiums = {team: 0 for team in teams_drivers}
-        st.session_state.driver_wins = {driver['driver']: 0 for driver in drivers}
-        st.session_state.driver_podiums = {driver['driver']: 0 for driver in drivers}
-        st.session_state.races_completed = 0
-        st.session_state.race_summaries = []
-        st.session_state.race_finished = False
-        st.session_state.race_started = False
-        st.session_state.qualifying_times = {}
-        st.session_state.qualifying_completed = {}
-        st.session_state.grid_positions = {}
-        st.session_state.starting_grid = list(range(20))
-        st.rerun()
