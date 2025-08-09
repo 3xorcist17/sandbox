@@ -1859,7 +1859,7 @@ with tab6:
                     most_consistent = max(consistency_scores, key=lambda x: x[1])  # Higher score is more consistent
                     driver_team = next(d['team'] for d in drivers if d['driver'] == most_consistent[0])
                     st.markdown(f'''
-                    <div class="award-card" style="--award-color-1: #2c3e50; --award-color-2: #34495e;">
+                    <div class="award-card" style="--award-color-1: #6d9bc9; --award-color-2: #416487;">
                         <div class="rating-header">
                             <div>
                                 <div class="driver-name">🎯 Most Consistent</div>
