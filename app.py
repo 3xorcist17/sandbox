@@ -672,7 +672,7 @@ with tab1:
 with tab2:
     st.markdown('<div class="race-container">', unsafe_allow_html=True)
     st.markdown("### 🏆 Drivers' Championship Hub")
-    st.markdown(f"**Season Overview: {st.session_state.races_completed} Races Completed**")
+    st.markdown(f"**Races Completed: {st.session_state.races_completed}**")
     
     if st.session_state.races_completed > 0:
         # Prepare data
