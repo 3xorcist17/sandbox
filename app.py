@@ -667,7 +667,6 @@ with tab1:
         st.markdown('</div>', unsafe_allow_html=True)
 
 
-# Tab 2: Drivers' Championship Standings and Chart - FIXED teammate battles
 # Tab 2: Enhanced Drivers' Championship Standings with Advanced Analytics
 with tab2:
     st.markdown('<div class="race-container">', unsafe_allow_html=True)
@@ -941,7 +940,7 @@ with tab2:
                 st.plotly_chart(fig_line, use_container_width=True)
         
         # Full Championship Table
-        st.markdown("---")
+        #st.markdown("---")
         st.markdown("#### 📋 Complete Championship Standings")
         
         st.markdown('<div class="leaderboard">', unsafe_allow_html=True)
