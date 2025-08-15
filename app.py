@@ -668,6 +668,7 @@ with tab1:
 
 
 # Tab 2: Drivers' Championship Standings and Chart - FIXED teammate battles
+# Tab 2: Enhanced Drivers' Championship Standings with Advanced Analytics
 with tab2:
     st.markdown('<div class="race-container">', unsafe_allow_html=True)
     st.markdown("### 🏆 Drivers' Championship Hub")
@@ -780,149 +781,6 @@ with tab2:
             st.metric("🏆 Total Points Awarded", total_points)
             st.metric("🏁 Race Winners", total_winners)
             st.metric("👑 Leader Dominance", f"{leader_dominance:.1f}%")
-            
-            # Points distribution pie chart
-            if len(sorted_driver_standings) > 0:
-                top_5_points = sum([points for _, points in sorted_driver_standings[:5]])
-                others_points = total_points - top_5_points
-                
-                pie_data = []
-                for pos, (driver, points) in enumerate(sorted_driver_standings[:5]):
-                    if points > 0:
-                        pie_data.append({"Driver": driver, "Points": points})
-                
-                if others_points > 0:
-                    pie_data.append({"Driver": "Others", "Points": others_points})
-                
-                if pie_data:
-                    pie_df = pd.DataFrame(pie_data)
-                    fig_pie = px.pie(
-                        pie_df,
-                        values="Points",
-                        names="Driver",
-                        title="Points Distribution"
-                    )
-                    fig_pie.update_traces(textposition="inside", textinfo="label+percent")
-                    fig_pie.update_layout(
-                        height=300,
-                        font=dict(size=10, color="#000000"),
-                        plot_bgcolor='rgba(240, 242, 246, 0.95)',
-                        paper_bgcolor='rgba(240, 242, 246, 0.95)',
-                        title_font_size=14
-                    )
-                    st.plotly_chart(fig_pie, use_container_width=True)
-        
-        st.markdown("---")
-        
-        # Performance Analytics Section
-        st.markdown("#### 📈 Performance Analytics")
-        
-        analytics_col1, analytics_col2 = st.columns(2)
-        
-        with analytics_col1:
-            st.markdown("##### 🎯 Wins vs Podiums Analysis")
-            
-            # Scatter plot: Wins vs Podiums vs Points
-            scatter_data = []
-            for driver_info in drivers:
-                driver = driver_info['driver']
-                team = driver_info['team']
-                points = st.session_state.total_driver_points[driver]
-                wins = st.session_state.driver_wins[driver]
-                podiums = st.session_state.driver_podiums[driver]
-                rating = calculate_driver_rating(driver)
-                
-                scatter_data.append({
-                    "Driver": driver,
-                    "Team": team,
-                    "Wins": wins,
-                    "Podiums": podiums,
-                    "Points": points,
-                    "Rating": rating
-                })
-            
-            scatter_df = pd.DataFrame(scatter_data)
-            fig_scatter = px.scatter(
-                scatter_df,
-                x="Wins",
-                y="Podiums",
-                size="Points",
-                color="Team",
-                hover_data=["Driver", "Points", "Rating"],
-                color_discrete_map=team_colors,
-                title="Race Wins vs Podiums (Bubble Size = Points)"
-            )
-            fig_scatter.update_traces(marker=dict(line=dict(width=2, color='rgba(0,0,0,0.3)')))
-            fig_scatter.update_layout(
-                height=400,
-                font=dict(color="#000000"),
-                plot_bgcolor='rgba(240, 242, 246, 0.95)',
-                paper_bgcolor='rgba(240, 242, 246, 0.95)',
-                xaxis=dict(gridcolor='rgba(128, 128, 128, 0.3)'),
-                yaxis=dict(gridcolor='rgba(128, 128, 128, 0.3)')
-            )
-            st.plotly_chart(fig_scatter, use_container_width=True)
-        
-        with analytics_col2:
-            st.markdown("##### ⚡ Driver Efficiency Radar")
-            
-            # Driver efficiency metrics for top 6
-            top_6_drivers = sorted_driver_standings[:6]
-            if len(top_6_drivers) >= 3:
-                radar_data = []
-                categories = ['Points/Race', 'Win Rate', 'Podium Rate', 'Consistency', 'Overall Rating']
-                
-                for driver, points in top_6_drivers:
-                    win_rate = (st.session_state.driver_wins[driver] / st.session_state.races_completed) * 100
-                    podium_rate = (st.session_state.driver_podiums[driver] / st.session_state.races_completed) * 100
-                    points_per_race = points / st.session_state.races_completed
-                    consistency = min(100, points_per_race * 4)  # Scale for radar
-                    overall_rating = calculate_driver_rating(driver) * 10
-                    
-                    radar_data.append({
-                        'Driver': driver,
-                        'Points/Race': min(100, points_per_race * 4),
-                        'Win Rate': win_rate * 10,  # Scale up for visibility
-                        'Podium Rate': podium_rate * 3.33,  # Scale up for visibility  
-                        'Consistency': consistency,
-                        'Overall Rating': overall_rating
-                    })
-                
-                radar_df = pd.DataFrame(radar_data)
-                
-                # Create radar chart using plotly
-                fig_radar = go.Figure()
-                
-                for i, row in radar_df.iterrows():
-                    if i < 3:  # Show only top 3 for clarity
-                        driver = row['Driver']
-                        values = [row[cat] for cat in categories]
-                        values.append(values[0])  # Close the radar
-                        categories_closed = categories + [categories[0]]
-                        
-                        fig_radar.add_trace(go.Scatterpolar(
-                            r=values,
-                            theta=categories_closed,
-                            fill='toself',
-                            name=driver,
-                            line_color=driver_colors.get(driver, '#3498db')
-                        ))
-                
-                fig_radar.update_layout(
-                    polar=dict(
-                        radialaxis=dict(
-                            visible=True,
-                            range=[0, 100]
-                        )
-                    ),
-                    showlegend=True,
-                    height=400,
-                    title="Top 3 Drivers Performance Radar",
-                    font=dict(color="#000000"),
-                    plot_bgcolor='rgba(240, 242, 246, 0.95)',
-                    paper_bgcolor='rgba(240, 242, 246, 0.95)'
-                )
-                st.plotly_chart(fig_radar, use_container_width=True)
         
         st.markdown("---")
         
@@ -1115,8 +973,6 @@ with tab2:
                     <span style="font-weight: bold; color: #000000;">{points} pts</span>
                     <span style="font-size: 12px; color: #000000;">🏆{wins}W</span>
                     <span style="font-size: 12px; color: #000000;">🏁{podiums}P</span>
-                    <span style="font-size: 12px; color: #000000;">⭐{rating:.1f}</span>
-                    <span style="font-size: 12px; color: #000000;">📊{avg_points:.1f}avg</span>
                 </div>
             </div>
             ''', unsafe_allow_html=True)
