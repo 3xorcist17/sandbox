@@ -783,36 +783,17 @@ with tab2:
         
         st.markdown("---")
         
-        # FIXED Championship Progression - Interactive Visualization
+        # Championship Position Heat Map
         if st.session_state.races_completed > 1 and st.session_state.race_summaries:
-            st.markdown("#### 🏁 Complete Championship Evolution - Interactive View")
-            
-            # Create race selector
-            selected_race = st.selectbox(
-                "Select Race to View:",
-                options=list(range(0, st.session_state.races_completed + 1)),
-                format_func=lambda x: "Season Start" if x == 0 else f"After Race {x}",
-                index=st.session_state.races_completed,
-                key="race_selector"
-            )
+            st.markdown("##### 🔥 Championship Position Heat Map")
+            st.markdown("*Hover over cells to see driver progression across races*")
             
             # Calculate CORRECT championship progression
             def calculate_progression_data():
                 progression_data = []
                 cumulative_points = {driver['driver']: 0 for driver in drivers}
                 
-                # Race 0 - Season start (everyone at 0)
-                for driver_info in drivers:
-                    driver = driver_info['driver']
-                    progression_data.append({
-                        'Race': 0,
-                        'Driver': driver,
-                        'Points': 0,
-                        'Team': driver_info['team'],
-                        'Position': 1  # All tied at start
-                    })
-                
-                # Process each completed race
+                # Process each completed race (skip race 0 - season start)
                 for race_num in range(1, st.session_state.races_completed + 1):
                     if race_num <= len(st.session_state.race_summaries):
                         summary = st.session_state.race_summaries[race_num - 1]
@@ -846,153 +827,6 @@ with tab2:
             
             progression_data = calculate_progression_data()
             
-            # Filter data for selected race
-            selected_race_data = [d for d in progression_data if d['Race'] == selected_race]
-            selected_race_data.sort(key=lambda x: x['Points'], reverse=True)
-            
-            # Update positions for selected race
-            for i, driver_data in enumerate(selected_race_data):
-                driver_data['Position'] = i + 1
-            
-            # Championship Standings Grid for Selected Race
-            st.markdown(f"##### {'🏁 Season Start' if selected_race == 0 else f'🏆 Championship After Race {selected_race}'}")
-            
-            # Create championship grid visualization
-            cols = st.columns(4)
-            for idx, driver_data in enumerate(selected_race_data):
-                col_idx = idx % 4
-                driver = driver_data['Driver']
-                points = driver_data['Points']
-                position = driver_data['Position']
-                team = driver_data['Team']
-                
-                # Get team color
-                team_color = team_colors.get(team, '#3498db')
-                
-                # Position styling
-                if position == 1:
-                    card_style = f"background: linear-gradient(135deg, #FFD700, #FFA500); border: 3px solid #FFD700;"
-                    position_emoji = "🥇"
-                elif position == 2:
-                    card_style = f"background: linear-gradient(135deg, #C0C0C0, #999999); border: 3px solid #C0C0C0;"
-                    position_emoji = "🥈"
-                elif position == 3:
-                    card_style = f"background: linear-gradient(135deg, #CD7F32, #B8860B); border: 3px solid #CD7F32;"
-                    position_emoji = "🥉"
-                else:
-                    card_style = f"background: linear-gradient(135deg, {team_color}40, {team_color}20); border: 2px solid {team_color};"
-                    position_emoji = f"P{position}"
-                
-                # Gap to leader
-                leader_points = selected_race_data[0]['Points']
-                gap = leader_points - points if position > 1 else 0
-                gap_text = f"(-{gap})" if gap > 0 else "LEADER"
-                
-                with cols[col_idx]:
-                    st.markdown(f'''
-                    <div style="{card_style} border-radius: 15px; padding: 15px; margin-bottom: 10px; color: #000000;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <div style="font-size: 24px; font-weight: bold;">{position_emoji}</div>
-                            <div style="font-size: 20px; font-weight: bold;">{points}</div>
-                        </div>
-                        <div style="font-weight: bold; margin-bottom: 5px;">{driver}</div>
-                        <div style="font-size: 12px; opacity: 0.8; margin-bottom: 5px;">{team}</div>
-                        <div style="font-size: 11px; font-weight: bold;">{gap_text}</div>
-                    </div>
-                    ''', unsafe_allow_html=True)
-            
-            st.markdown("---")
-            
-            # Position Movement Analysis
-            if selected_race > 0:
-                st.markdown("##### 📈 Championship Movement Analysis")
-                
-                movement_col1, movement_col2, movement_col3 = st.columns(3)
-                
-                # Get previous race data for comparison
-                prev_race_data = [d for d in progression_data if d['Race'] == max(0, selected_race - 1)]
-                prev_positions = {d['Driver']: d['Position'] for d in prev_race_data}
-                
-                # Calculate movements
-                movements = []
-                for driver_data in selected_race_data:
-                    driver = driver_data['Driver']
-                    current_pos = driver_data['Position']
-                    prev_pos = prev_positions.get(driver, current_pos)
-                    movement = prev_pos - current_pos  # Positive = moved up
-                    
-                    if movement != 0:
-                        movements.append({
-                            'driver': driver,
-                            'team': driver_data['Team'],
-                            'movement': movement,
-                            'current_pos': current_pos,
-                            'prev_pos': prev_pos
-                        })
-                
-                movements.sort(key=lambda x: x['movement'], reverse=True)
-                
-                with movement_col1:
-                    # Biggest Climber
-                    if movements and movements[0]['movement'] > 0:
-                        climber = movements[0]
-                        st.markdown(f'''
-                        <div style="background: linear-gradient(135deg, #2ecc71, #27ae60); 
-                                   border-radius: 12px; padding: 15px; color: #000000; text-align: center;">
-                            <div style="font-size: 18px; font-weight: bold;">📈 Biggest Climber</div>
-                            <div style="font-size: 16px; margin: 5px 0;">{climber['driver']}</div>
-                            <div style="font-size: 14px; opacity: 0.8;">{climber['team']}</div>
-                            <div style="font-size: 20px; font-weight: bold; margin-top: 10px;">
-                                +{climber['movement']} positions
-                            </div>
-                            <div style="font-size: 12px;">P{climber['prev_pos']} → P{climber['current_pos']}</div>
-                        </div>
-                        ''', unsafe_allow_html=True)
-                    else:
-                        st.markdown('<div style="padding: 20px; text-align: center; opacity: 0.7;">No significant climbers</div>')
-                
-                with movement_col2:
-                    # Current Leader Info
-                    leader = selected_race_data[0]
-                    st.markdown(f'''
-                    <div style="background: linear-gradient(135deg, #FFD700, #FFA500); 
-                               border-radius: 12px; padding: 15px; color: #000000; text-align: center;">
-                        <div style="font-size: 18px; font-weight: bold;">👑 Championship Leader</div>
-                        <div style="font-size: 16px; margin: 5px 0;">{leader['Driver']}</div>
-                        <div style="font-size: 14px; opacity: 0.8;">{leader['Team']}</div>
-                        <div style="font-size: 20px; font-weight: bold; margin-top: 10px;">
-                            {leader['Points']} points
-                        </div>
-                        <div style="font-size: 12px;">
-                            {leader['Points']/selected_race:.1f} avg per race
-                        </div>
-                    </div>
-                    ''', unsafe_allow_html=True)
-                
-                with movement_col3:
-                    # Biggest Faller
-                    if movements and movements[-1]['movement'] < 0:
-                        faller = movements[-1]
-                        st.markdown(f'''
-                        <div style="background: linear-gradient(135deg, #e74c3c, #c0392b); 
-                                   border-radius: 12px; padding: 15px; color: #000000; text-align: center;">
-                            <div style="font-size: 18px; font-weight: bold;">📉 Biggest Faller</div>
-                            <div style="font-size: 16px; margin: 5px 0;">{faller['driver']}</div>
-                            <div style="font-size: 14px; opacity: 0.8;">{faller['team']}</div>
-                            <div style="font-size: 20px; font-weight: bold; margin-top: 10px;">
-                                {faller['movement']} positions
-                            </div>
-                            <div style="font-size: 12px;">P{faller['prev_pos']} → P{faller['current_pos']}</div>
-                        </div>
-                        ''', unsafe_allow_html=True)
-                    else:
-                        st.markdown('<div style="padding: 20px; text-align: center; opacity: 0.7;">No significant fallers</div>')
-            
-            # Championship Heat Map
-            st.markdown("---")
-            st.markdown("##### 🔥 Championship Position Heat Map")
-            st.markdown("*Hover over cells to see driver progression across races*")
-            
             # Create heat map data
             heat_map_data = []
             all_drivers = [d['driver'] for d in drivers]
@@ -1002,31 +836,28 @@ with tab2:
                 driver_progression.sort(key=lambda x: x['Race'])
                 
                 row_data = {'Driver': driver}
-                for race_data in driver_progression[:selected_race + 1]:
+                for race_data in driver_progression:
                     race_num = race_data['Race']
                     position = race_data['Position']
                     row_data[f'Race_{race_num}'] = position
                 
                 heat_map_data.append(row_data)
             
-            # Create heat map visualization
-            heat_map_html = '<div style="display: grid; grid-template-columns: 200px repeat(' + str(selected_race + 1) + ', 50px); gap: 2px; font-size: 12px;">'
+            # Create heat map visualization (without P1 and Start columns)
+            heat_map_html = '<div style="display: grid; grid-template-columns: 200px repeat(' + str(st.session_state.races_completed) + ', 50px); gap: 2px; font-size: 12px;">'
             
             # Header row
             heat_map_html += '<div style="font-weight: bold; padding: 8px; background: #34495e; color: white; border-radius: 4px;">Driver</div>'
-            for race in range(selected_race + 1):
-                race_label = "Start" if race == 0 else f"R{race}"
-                heat_map_html += f'<div style="font-weight: bold; padding: 8px; background: #34495e; color: white; text-align: center; border-radius: 4px;">{race_label}</div>'
+            for race in range(1, st.session_state.races_completed + 1):
+                heat_map_html += f'<div style="font-weight: bold; padding: 8px; background: #34495e; color: white; text-align: center; border-radius: 4px;">R{race}</div>'
             
-            # Driver rows
+            # Driver rows (without team colors for driver names)
             for driver_data in heat_map_data:
                 driver = driver_data['Driver']
-                team = next(d['team'] for d in drivers if d['driver'] == driver)
-                team_color = team_colors.get(team, '#3498db')
                 
-                heat_map_html += f'<div style="padding: 8px; background: {team_color}40; border-radius: 4px; font-weight: bold;">{driver}</div>'
+                heat_map_html += f'<div style="padding: 8px; background: rgba(255, 255, 255, 0.9); border-radius: 4px; font-weight: bold; color: #000000;">{driver}</div>'
                 
-                for race in range(selected_race + 1):
+                for race in range(1, st.session_state.races_completed + 1):
                     position = driver_data.get(f'Race_{race}', '-')
                     
                     # Color based on position
@@ -1196,6 +1027,7 @@ with tab2:
         st.write("• Detailed performance analytics")  
         st.write("• Constructor vs constructor battles")
         st.markdown('</div>', unsafe_allow_html=True)
+
 
 # Tab 3: Constructors' Championship Standings and Chart - REMOVED team member contribution section
 with tab3:
