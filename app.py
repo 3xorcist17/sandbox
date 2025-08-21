@@ -820,18 +820,11 @@ with tab2:
                         
                         race_standings.append((driver, estimated_points))
                     
-                    # Sort by points for this race
-                    race_standings.sort(key=lambda x: x[1], reverse=True)
+                    # Sort by points for this race (add driver name for consistent tie-breaking)
+                    race_standings.sort(key=lambda x: (x[1], x[0]), reverse=True)
                     
-                    # Assign positions (handle ties properly)
-                    current_position = 1
-                    prev_points = None
-                    
-                    for idx, (driver, points) in enumerate(race_standings):
-                        # Only increment position if points are different
-                        if prev_points is not None and points < prev_points:
-                            current_position = idx + 1
-                        
+                    # Assign positions correctly without duplicates
+                    for position, (driver, points) in enumerate(race_standings, 1):
                         team = next(d['team'] for d in drivers if d['driver'] == driver)
                         
                         progression_data.append({
@@ -839,10 +832,8 @@ with tab2:
                             'Driver': driver,
                             'Points': points,
                             'Team': team,
-                            'Position': current_position
+                            'Position': position
                         })
-                        
-                        prev_points = points
                 
                 return progression_data
             
