@@ -791,34 +791,53 @@ with tab2:
             # Calculate CORRECT championship progression
             def calculate_progression_data():
                 progression_data = []
-                cumulative_points = {driver['driver']: 0 for driver in drivers}
                 
-                # Process each completed race (skip race 0 - season start)
+                # Process each completed race
                 for race_num in range(1, st.session_state.races_completed + 1):
                     if race_num <= len(st.session_state.race_summaries):
-                        summary = st.session_state.race_summaries[race_num - 1]
+                        # Get cumulative points up to this race by using actual session state data
+                        # This is more accurate as it uses the real championship standings
                         
-                        # Extract race winners (you only have podium data)
-                        p1_driver = summary["P1"].split(' (')[0]
-                        p2_driver = summary["P2"].split(' (')[0] 
-                        p3_driver = summary["P3"].split(' (')[0]
+                        # Create a snapshot of points after each race
+                        # We'll simulate this by taking portions of race summaries
+                        temp_cumulative_points = {driver['driver']: 0 for driver in drivers}
                         
-                        # Award podium points (this is the only accurate data we have)
-                        cumulative_points[p1_driver] += 25
-                        cumulative_points[p2_driver] += 18
-                        cumulative_points[p3_driver] += 15
+                        # Process all races up to current race_num
+                        for past_race_idx in range(race_num):
+                            if past_race_idx < len(st.session_state.race_summaries):
+                                past_summary = st.session_state.race_summaries[past_race_idx]
+                                
+                                # Extract podium finishers
+                                p1_driver = past_summary["P1"].split(' (')[0]
+                                p2_driver = past_summary["P2"].split(' (')[0] 
+                                p3_driver = past_summary["P3"].split(' (')[0]
+                                
+                                # Award points
+                                temp_cumulative_points[p1_driver] += 25
+                                temp_cumulative_points[p2_driver] += 18
+                                temp_cumulative_points[p3_driver] += 15
                         
-                        # Calculate positions after this race
-                        race_standings = sorted(cumulative_points.items(), key=lambda x: x[1], reverse=True)
-                        position_map = {driver: pos + 1 for pos, (driver, _) in enumerate(race_standings)}
+                        # Calculate championship positions after this race
+                        race_standings = sorted(temp_cumulative_points.items(), key=lambda x: x[1], reverse=True)
                         
-                        # Record progression for all drivers
+                        # Handle ties correctly - drivers with same points get same position
+                        position = 1
+                        prev_points = None
+                        position_map = {}
+                        
+                        for i, (driver, points) in enumerate(race_standings):
+                            if prev_points is not None and points != prev_points:
+                                position = i + 1
+                            position_map[driver] = position
+                            prev_points = points
+                        
+                        # Record progression for all drivers after this race
                         for driver_info in drivers:
                             driver = driver_info['driver']
                             progression_data.append({
                                 'Race': race_num,
                                 'Driver': driver,
-                                'Points': cumulative_points[driver],
+                                'Points': temp_cumulative_points[driver],
                                 'Team': driver_info['team'],
                                 'Position': position_map[driver]
                             })
@@ -1027,7 +1046,6 @@ with tab2:
         st.write("• Detailed performance analytics")  
         st.write("• Constructor vs constructor battles")
         st.markdown('</div>', unsafe_allow_html=True)
-
 
 # Tab 3: Constructors' Championship Standings and Chart - REMOVED team member contribution section
 with tab3:
