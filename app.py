@@ -668,7 +668,6 @@ with tab1:
 
 
 # Tab 2: Enhanced Drivers' Championship Standings with Advanced Analytics
-# Tab 2: Enhanced Drivers' Championship Standings with Advanced Analytics
 with tab2:
     st.markdown('<div class="race-container">', unsafe_allow_html=True)
     st.markdown("### 🏆 Drivers' Championship Hub")
@@ -784,337 +783,272 @@ with tab2:
         
         st.markdown("---")
         
-        # Enhanced Championship Progression - ALL 20 DRIVERS
+        # FIXED Championship Progression - Interactive Visualization
         if st.session_state.races_completed > 1 and st.session_state.race_summaries:
-            st.markdown("#### 📈 Complete Championship Progression - All 20 Drivers")
+            st.markdown("#### 🏁 Complete Championship Evolution - Interactive View")
             
-            # Create comprehensive race-by-race progression for ALL drivers
-            progression_data = []
-            race_points = {driver['driver']: 0 for driver in drivers}
+            # Create race selector
+            selected_race = st.selectbox(
+                "Select Race to View:",
+                options=list(range(0, st.session_state.races_completed + 1)),
+                format_func=lambda x: "Season Start" if x == 0 else f"After Race {x}",
+                index=st.session_state.races_completed,
+                key="race_selector"
+            )
             
-            # Initialize with race 0 (start of season)
-            for driver_info in drivers:
-                driver = driver_info['driver']
-                progression_data.append({
-                    'Race': 0,
-                    'Driver': driver,
-                    'Points': 0,
-                    'Team': driver_info['team']
-                })
-            
-            # Track progression race by race
-            for race_num, summary in enumerate(st.session_state.race_summaries, 1):
-                # Extract race results from summary
-                p1_driver = summary["P1"].split(' (')[0]
-                p2_driver = summary["P2"].split(' (')[0]
-                p3_driver = summary["P3"].split(' (')[0]
+            # Calculate CORRECT championship progression
+            def calculate_progression_data():
+                progression_data = []
+                cumulative_points = {driver['driver']: 0 for driver in drivers}
                 
-                # Award points for podium positions (simplified for progression)
-                race_points[p1_driver] += 25
-                race_points[p2_driver] += 18
-                race_points[p3_driver] += 15
-                
-                # Estimate points for other positions based on actual championship points
-                # This is an approximation since we only have podium data
-                all_drivers_this_race = list(race_points.keys())
-                podium_drivers = [p1_driver, p2_driver, p3_driver]
-                remaining_drivers = [d for d in all_drivers_this_race if d not in podium_drivers]
-                
-                # Distribute remaining points based on current championship standing
-                remaining_points = [12, 10, 8, 6, 4, 2, 1]  # P4 through P10
-                current_standings = sorted(
-                    [(d, st.session_state.total_driver_points[d]) for d in remaining_drivers],
-                    key=lambda x: x[1], 
-                    reverse=True
-                )
-                
-                for i, (driver, _) in enumerate(current_standings[:7]):
-                    if i < len(remaining_points):
-                        race_points[driver] += remaining_points[i]
-                
-                # Record progression for ALL drivers
+                # Race 0 - Season start (everyone at 0)
                 for driver_info in drivers:
                     driver = driver_info['driver']
-                    team = driver_info['team']
                     progression_data.append({
-                        'Race': race_num,
+                        'Race': 0,
                         'Driver': driver,
-                        'Points': race_points[driver],
-                        'Team': team
+                        'Points': 0,
+                        'Team': driver_info['team'],
+                        'Position': 1  # All tied at start
                     })
+                
+                # Process each completed race
+                for race_num in range(1, st.session_state.races_completed + 1):
+                    if race_num <= len(st.session_state.race_summaries):
+                        summary = st.session_state.race_summaries[race_num - 1]
+                        
+                        # Extract race winners (you only have podium data)
+                        p1_driver = summary["P1"].split(' (')[0]
+                        p2_driver = summary["P2"].split(' (')[0] 
+                        p3_driver = summary["P3"].split(' (')[0]
+                        
+                        # Award podium points (this is the only accurate data we have)
+                        cumulative_points[p1_driver] += 25
+                        cumulative_points[p2_driver] += 18
+                        cumulative_points[p3_driver] += 15
+                        
+                        # Calculate positions after this race
+                        race_standings = sorted(cumulative_points.items(), key=lambda x: x[1], reverse=True)
+                        position_map = {driver: pos + 1 for pos, (driver, _) in enumerate(race_standings)}
+                        
+                        # Record progression for all drivers
+                        for driver_info in drivers:
+                            driver = driver_info['driver']
+                            progression_data.append({
+                                'Race': race_num,
+                                'Driver': driver,
+                                'Points': cumulative_points[driver],
+                                'Team': driver_info['team'],
+                                'Position': position_map[driver]
+                            })
+                
+                return progression_data
             
-            # Create the comprehensive progression chart
-            if progression_data:
-                progression_df = pd.DataFrame(progression_data)
+            progression_data = calculate_progression_data()
+            
+            # Filter data for selected race
+            selected_race_data = [d for d in progression_data if d['Race'] == selected_race]
+            selected_race_data.sort(key=lambda x: x['Points'], reverse=True)
+            
+            # Update positions for selected race
+            for i, driver_data in enumerate(selected_race_data):
+                driver_data['Position'] = i + 1
+            
+            # Championship Standings Grid for Selected Race
+            st.markdown(f"##### {'🏁 Season Start' if selected_race == 0 else f'🏆 Championship After Race {selected_race}'}")
+            
+            # Create championship grid visualization
+            cols = st.columns(4)
+            for idx, driver_data in enumerate(selected_race_data):
+                col_idx = idx % 4
+                driver = driver_data['Driver']
+                points = driver_data['Points']
+                position = driver_data['Position']
+                team = driver_data['Team']
                 
-                # Create two charts: Top 10 and Bottom 10
-                chart_col1, chart_col2 = st.columns(2)
+                # Get team color
+                team_color = team_colors.get(team, '#3498db')
                 
-                with chart_col1:
-                    st.markdown("##### 🔥 Top 10 Championship Battle")
-                    # Get top 10 drivers by final points
-                    top_10_final = [driver for driver, _ in sorted_driver_standings[:10]]
-                    top_10_data = progression_df[progression_df['Driver'].isin(top_10_final)]
+                # Position styling
+                if position == 1:
+                    card_style = f"background: linear-gradient(135deg, #FFD700, #FFA500); border: 3px solid #FFD700;"
+                    position_emoji = "🥇"
+                elif position == 2:
+                    card_style = f"background: linear-gradient(135deg, #C0C0C0, #999999); border: 3px solid #C0C0C0;"
+                    position_emoji = "🥈"
+                elif position == 3:
+                    card_style = f"background: linear-gradient(135deg, #CD7F32, #B8860B); border: 3px solid #CD7F32;"
+                    position_emoji = "🥉"
+                else:
+                    card_style = f"background: linear-gradient(135deg, {team_color}40, {team_color}20); border: 2px solid {team_color};"
+                    position_emoji = f"P{position}"
+                
+                # Gap to leader
+                leader_points = selected_race_data[0]['Points']
+                gap = leader_points - points if position > 1 else 0
+                gap_text = f"(-{gap})" if gap > 0 else "LEADER"
+                
+                with cols[col_idx]:
+                    st.markdown(f'''
+                    <div style="{card_style} border-radius: 15px; padding: 15px; margin-bottom: 10px; color: #000000;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <div style="font-size: 24px; font-weight: bold;">{position_emoji}</div>
+                            <div style="font-size: 20px; font-weight: bold;">{points}</div>
+                        </div>
+                        <div style="font-weight: bold; margin-bottom: 5px;">{driver}</div>
+                        <div style="font-size: 12px; opacity: 0.8; margin-bottom: 5px;">{team}</div>
+                        <div style="font-size: 11px; font-weight: bold;">{gap_text}</div>
+                    </div>
+                    ''', unsafe_allow_html=True)
+            
+            st.markdown("---")
+            
+            # Position Movement Analysis
+            if selected_race > 0:
+                st.markdown("##### 📈 Championship Movement Analysis")
+                
+                movement_col1, movement_col2, movement_col3 = st.columns(3)
+                
+                # Get previous race data for comparison
+                prev_race_data = [d for d in progression_data if d['Race'] == max(0, selected_race - 1)]
+                prev_positions = {d['Driver']: d['Position'] for d in prev_race_data}
+                
+                # Calculate movements
+                movements = []
+                for driver_data in selected_race_data:
+                    driver = driver_data['Driver']
+                    current_pos = driver_data['Position']
+                    prev_pos = prev_positions.get(driver, current_pos)
+                    movement = prev_pos - current_pos  # Positive = moved up
                     
-                    # Create individual color map for top 10 drivers
-                    top_10_colors = {driver: driver_colors.get(driver, '#3498db') for driver in top_10_final}
-                    
-                    fig_top = px.line(
-                        top_10_data,
-                        x='Race',
-                        y='Points',
-                        color='Driver',
-                        title="Top 10 Championship Progression",
-                        markers=True,
-                        color_discrete_map=top_10_colors
-                    )
-                    
-                    fig_top.update_layout(
-                        height=450,
-                        xaxis_title="Race Number",
-                        yaxis_title="Championship Points",
-                        font=dict(color="#000000", size=10),
-                        plot_bgcolor='rgba(240, 242, 246, 0.95)',
-                        paper_bgcolor='rgba(240, 242, 246, 0.95)',
-                        xaxis=dict(gridcolor='rgba(128, 128, 128, 0.3)'),
-                        yaxis=dict(gridcolor='rgba(128, 128, 128, 0.3)'),
-                        legend=dict(font=dict(size=9))
-                    )
-                    
-                    # Enhance line thickness for better visibility
-                    fig_top.update_traces(line=dict(width=3))
-                    
-                    st.plotly_chart(fig_top, use_container_width=True)
+                    if movement != 0:
+                        movements.append({
+                            'driver': driver,
+                            'team': driver_data['Team'],
+                            'movement': movement,
+                            'current_pos': current_pos,
+                            'prev_pos': prev_pos
+                        })
                 
-                with chart_col2:
-                    st.markdown("##### ⚔️ Midfield & Backmarker Battle")
-                    # Get bottom 10 drivers
-                    bottom_10_final = [driver for driver, _ in sorted_driver_standings[10:]]
-                    bottom_10_data = progression_df[progression_df['Driver'].isin(bottom_10_final)]
-                    
-                    # Create individual color map for bottom 10 drivers
-                    bottom_10_colors = {driver: driver_colors.get(driver, '#3498db') for driver in bottom_10_final}
-                    
-                    fig_bottom = px.line(
-                        bottom_10_data,
-                        x='Race',
-                        y='Points',
-                        color='Driver',
-                        title="Midfield Championship Battle",
-                        markers=True,
-                        color_discrete_map=bottom_10_colors
-                    )
-                    
-                    fig_bottom.update_layout(
-                        height=450,
-                        xaxis_title="Race Number",
-                        yaxis_title="Championship Points",
-                        font=dict(color="#000000", size=10),
-                        plot_bgcolor='rgba(240, 242, 246, 0.95)',
-                        paper_bgcolor='rgba(240, 242, 246, 0.95)',
-                        xaxis=dict(gridcolor='rgba(128, 128, 128, 0.3)'),
-                        yaxis=dict(gridcolor='rgba(128, 128, 128, 0.3)'),
-                        legend=dict(font=dict(size=9))
-                    )
-                    
-                    # Enhance line thickness for better visibility
-                    fig_bottom.update_traces(line=dict(width=3))
-                    
-                    st.plotly_chart(fig_bottom, use_container_width=True)
+                movements.sort(key=lambda x: x['movement'], reverse=True)
                 
-                # Comprehensive All Drivers Chart
-                st.markdown("---")
-                st.markdown("##### 🌟 Complete Field Championship Evolution")
-                
-                # Create the master chart with all 20 drivers
-                fig_all = px.line(
-                    progression_df,
-                    x='Race',
-                    y='Points',
-                    color='Driver',
-                    title=f"Complete Championship Progression - All 20 Drivers ({st.session_state.races_completed} Races)",
-                    markers=True,
-                    color_discrete_map=driver_colors
-                )
-                
-                fig_all.update_layout(
-                    height=600,
-                    width=1200,
-                    xaxis_title="Race Number",
-                    yaxis_title="Championship Points",
-                    font=dict(color="#000000", size=11),
-                    plot_bgcolor='rgba(240, 242, 246, 0.95)',
-                    paper_bgcolor='rgba(240, 242, 246, 0.95)',
-                    title_font_size=16,
-                    xaxis=dict(
-                        gridcolor='rgba(128, 128, 128, 0.3)',
-                        tickmode='linear',
-                        tick0=0,
-                        dtick=1
-                    ),
-                    yaxis=dict(gridcolor='rgba(128, 128, 128, 0.3)'),
-                    legend=dict(
-                        orientation="v",
-                        yanchor="top",
-                        y=1,
-                        xanchor="left",
-                        x=1.02,
-                        font=dict(size=10)
-                    )
-                )
-                
-                # Enhanced styling for all lines
-                fig_all.update_traces(
-                    line=dict(width=2.5),
-                    marker=dict(size=6)
-                )
-                
-                # Add annotations for race milestones
-                if st.session_state.races_completed >= 5:
-                    fig_all.add_annotation(
-                        x=st.session_state.races_completed//2,
-                        y=max([d['Points'] for d in progression_data]) * 0.9,
-                        text="Mid-Season",
-                        showarrow=True,
-                        arrowhead=2,
-                        arrowcolor="rgba(0,0,0,0.5)",
-                        font=dict(size=12, color="#000000")
-                    )
-                
-                st.plotly_chart(fig_all, use_container_width=True)
-                
-                # Championship Position Changes Analysis
-                st.markdown("---")
-                st.markdown("##### 📊 Position Movement Analysis")
-                
-                position_col1, position_col2, position_col3 = st.columns(3)
-                
-                with position_col1:
+                with movement_col1:
                     # Biggest Climber
-                    if len(st.session_state.race_summaries) >= 2:
-                        # Compare early season vs current positions
-                        early_standings = {}
-                        current_standings = {driver: pos+1 for pos, (driver, _) in enumerate(sorted_driver_standings)}
-                        
-                        # Simulate early standings (after first 2 races)
-                        early_points = {driver['driver']: 0 for driver in drivers}
-                        for summary in st.session_state.race_summaries[:2]:
-                            early_points[summary["P1"].split(' (')[0]] += 25
-                            early_points[summary["P2"].split(' (')[0]] += 18
-                            early_points[summary["P3"].split(' (')[0]] += 15
-                        
-                        early_standings = {driver: pos+1 for pos, (driver, _) in enumerate(
-                            sorted(early_points.items(), key=lambda x: x[1], reverse=True)
-                        )}
-                        
-                        biggest_climber = None
-                        biggest_climb = 0
-                        for driver in current_standings:
-                            if driver in early_standings:
-                                climb = early_standings[driver] - current_standings[driver]
-                                if climb > biggest_climb:
-                                    biggest_climb = climb
-                                    biggest_climber = driver
-                        
-                        if biggest_climber and biggest_climb > 0:
-                            driver_team = next(d['team'] for d in drivers if d['driver'] == biggest_climber)
-                            st.markdown(f'''
-                            <div class="rating-card" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); color: #000000;">
-                                <div class="rating-header">
-                                    <div>
-                                        <div class="driver-name">📈 Biggest Climber</div>
-                                        <div class="team-name">{biggest_climber} ({driver_team})</div>
-                                    </div>
-                                    <div class="rating-score">+{biggest_climb}</div>
-                                </div>
-                                <div class="rating-details">
-                                    <span>Positions Gained</span>
-                                    <span>P{current_standings[biggest_climber]} Current</span>
-                                </div>
-                            </div>
-                            ''', unsafe_allow_html=True)
-                        else:
-                            st.markdown('<div class="rating-card"><p>No major climbers yet</p></div>', unsafe_allow_html=True)
-                    else:
-                        st.markdown('<div class="rating-card"><p>Need more races for analysis</p></div>', unsafe_allow_html=True)
-                
-                with position_col2:
-                    # Most Consistent (least position variation)
-                    # Calculate position consistency for top 10
-                    position_variations = {}
-                    for driver in [d for d, _ in sorted_driver_standings[:10]]:
-                        positions = []
-                        temp_points = {driver['driver']: 0 for driver in drivers}
-                        
-                        for race_num, summary in enumerate(st.session_state.race_summaries, 1):
-                            temp_points[summary["P1"].split(' (')[0]] += 25
-                            temp_points[summary["P2"].split(' (')[0]] += 18
-                            temp_points[summary["P3"].split(' (')[0]] += 15
-                            
-                            temp_standings = sorted(temp_points.items(), key=lambda x: x[1], reverse=True)
-                            driver_position = next(i+1 for i, (d, _) in enumerate(temp_standings) if d == driver)
-                            positions.append(driver_position)
-                        
-                        if len(positions) > 1:
-                            variation = max(positions) - min(positions)
-                            position_variations[driver] = (variation, min(positions), max(positions))
-                    
-                    if position_variations:
-                        most_consistent = min(position_variations.items(), key=lambda x: x[1][0])
-                        driver_team = next(d['team'] for d in drivers if d['driver'] == most_consistent[0])
+                    if movements and movements[0]['movement'] > 0:
+                        climber = movements[0]
                         st.markdown(f'''
-                        <div class="rating-card" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: #000000;">
-                            <div class="rating-header">
-                                <div>
-                                    <div class="driver-name">⚖️ Most Consistent</div>
-                                    <div class="team-name">{most_consistent[0]} ({driver_team})</div>
-                                </div>
-                                <div class="rating-score">{most_consistent[1][0]}</div>
+                        <div style="background: linear-gradient(135deg, #2ecc71, #27ae60); 
+                                   border-radius: 12px; padding: 15px; color: #000000; text-align: center;">
+                            <div style="font-size: 18px; font-weight: bold;">📈 Biggest Climber</div>
+                            <div style="font-size: 16px; margin: 5px 0;">{climber['driver']}</div>
+                            <div style="font-size: 14px; opacity: 0.8;">{climber['team']}</div>
+                            <div style="font-size: 20px; font-weight: bold; margin-top: 10px;">
+                                +{climber['movement']} positions
                             </div>
-                            <div class="rating-details">
-                                <span>Position Range</span>
-                                <span>P{most_consistent[1][1]}-P{most_consistent[1][2]}</span>
-                            </div>
+                            <div style="font-size: 12px;">P{climber['prev_pos']} → P{climber['current_pos']}</div>
                         </div>
                         ''', unsafe_allow_html=True)
                     else:
-                        st.markdown('<div class="rating-card"><p>Need more races</p></div>', unsafe_allow_html=True)
+                        st.markdown('<div style="padding: 20px; text-align: center; opacity: 0.7;">No significant climbers</div>')
                 
-                with position_col3:
-                    # Momentum Driver (best recent form)
-                    if len(st.session_state.race_summaries) >= 3:
-                        recent_points = {driver['driver']: 0 for driver in drivers}
-                        for summary in st.session_state.race_summaries[-3:]:  # Last 3 races
-                            recent_points[summary["P1"].split(' (')[0]] += 25
-                            recent_points[summary["P2"].split(' (')[0]] += 18
-                            recent_points[summary["P3"].split(' (')[0]] += 15
-                        
-                        momentum_driver = max(recent_points.items(), key=lambda x: x[1])
-                        if momentum_driver[1] > 0:
-                            driver_team = next(d['team'] for d in drivers if d['driver'] == momentum_driver[0])
-                            st.markdown(f'''
-                            <div class="rating-card" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: #000000;">
-                                <div class="rating-header">
-                                    <div>
-                                        <div class="driver-name">🔥 Hot Streak</div>
-                                        <div class="team-name">{momentum_driver[0]} ({driver_team})</div>
-                                    </div>
-                                    <div class="rating-score">{momentum_driver[1]}</div>
-                                </div>
-                                <div class="rating-details">
-                                    <span>Last 3 Races</span>
-                                    <span>Red Hot Form</span>
-                                </div>
+                with movement_col2:
+                    # Current Leader Info
+                    leader = selected_race_data[0]
+                    st.markdown(f'''
+                    <div style="background: linear-gradient(135deg, #FFD700, #FFA500); 
+                               border-radius: 12px; padding: 15px; color: #000000; text-align: center;">
+                        <div style="font-size: 18px; font-weight: bold;">👑 Championship Leader</div>
+                        <div style="font-size: 16px; margin: 5px 0;">{leader['Driver']}</div>
+                        <div style="font-size: 14px; opacity: 0.8;">{leader['Team']}</div>
+                        <div style="font-size: 20px; font-weight: bold; margin-top: 10px;">
+                            {leader['Points']} points
+                        </div>
+                        <div style="font-size: 12px;">
+                            {leader['Points']/selected_race:.1f} avg per race
+                        </div>
+                    </div>
+                    ''', unsafe_allow_html=True)
+                
+                with movement_col3:
+                    # Biggest Faller
+                    if movements and movements[-1]['movement'] < 0:
+                        faller = movements[-1]
+                        st.markdown(f'''
+                        <div style="background: linear-gradient(135deg, #e74c3c, #c0392b); 
+                                   border-radius: 12px; padding: 15px; color: #000000; text-align: center;">
+                            <div style="font-size: 18px; font-weight: bold;">📉 Biggest Faller</div>
+                            <div style="font-size: 16px; margin: 5px 0;">{faller['driver']}</div>
+                            <div style="font-size: 14px; opacity: 0.8;">{faller['team']}</div>
+                            <div style="font-size: 20px; font-weight: bold; margin-top: 10px;">
+                                {faller['movement']} positions
                             </div>
-                            ''', unsafe_allow_html=True)
-                        else:
-                            st.markdown('<div class="rating-card"><p>No momentum leaders</p></div>', unsafe_allow_html=True)
+                            <div style="font-size: 12px;">P{faller['prev_pos']} → P{faller['current_pos']}</div>
+                        </div>
+                        ''', unsafe_allow_html=True)
                     else:
-                        st.markdown('<div class="rating-card"><p>Need 3+ races</p></div>', unsafe_allow_html=True)
+                        st.markdown('<div style="padding: 20px; text-align: center; opacity: 0.7;">No significant fallers</div>')
+            
+            # Championship Heat Map
+            st.markdown("---")
+            st.markdown("##### 🔥 Championship Position Heat Map")
+            st.markdown("*Hover over cells to see driver progression across races*")
+            
+            # Create heat map data
+            heat_map_data = []
+            all_drivers = [d['driver'] for d in drivers]
+            
+            for driver in all_drivers:
+                driver_progression = [d for d in progression_data if d['Driver'] == driver]
+                driver_progression.sort(key=lambda x: x['Race'])
+                
+                row_data = {'Driver': driver}
+                for race_data in driver_progression[:selected_race + 1]:
+                    race_num = race_data['Race']
+                    position = race_data['Position']
+                    row_data[f'Race_{race_num}'] = position
+                
+                heat_map_data.append(row_data)
+            
+            # Create heat map visualization
+            heat_map_html = '<div style="display: grid; grid-template-columns: 200px repeat(' + str(selected_race + 1) + ', 50px); gap: 2px; font-size: 12px;">'
+            
+            # Header row
+            heat_map_html += '<div style="font-weight: bold; padding: 8px; background: #34495e; color: white; border-radius: 4px;">Driver</div>'
+            for race in range(selected_race + 1):
+                race_label = "Start" if race == 0 else f"R{race}"
+                heat_map_html += f'<div style="font-weight: bold; padding: 8px; background: #34495e; color: white; text-align: center; border-radius: 4px;">{race_label}</div>'
+            
+            # Driver rows
+            for driver_data in heat_map_data:
+                driver = driver_data['Driver']
+                team = next(d['team'] for d in drivers if d['driver'] == driver)
+                team_color = team_colors.get(team, '#3498db')
+                
+                heat_map_html += f'<div style="padding: 8px; background: {team_color}40; border-radius: 4px; font-weight: bold;">{driver}</div>'
+                
+                for race in range(selected_race + 1):
+                    position = driver_data.get(f'Race_{race}', '-')
+                    
+                    # Color based on position
+                    if position == 1:
+                        cell_color = '#FFD700'  # Gold
+                    elif position == 2:
+                        cell_color = '#C0C0C0'  # Silver
+                    elif position == 3:
+                        cell_color = '#CD7F32'  # Bronze
+                    elif position <= 10:
+                        cell_color = '#3498db40'  # Light blue for points
+                    else:
+                        cell_color = '#ecf0f1'  # Light gray
+                    
+                    heat_map_html += f'<div style="padding: 8px; background: {cell_color}; text-align: center; border-radius: 4px; font-weight: bold;" title="{driver} - Race {race}: P{position}">P{position}</div>'
+            
+            heat_map_html += '</div>'
+            st.markdown(heat_map_html, unsafe_allow_html=True)
         
         st.markdown("---")
         
-        # Teammate Battles Enhanced
+        # Teammate Battles Enhanced (keeping your existing code)
         st.markdown("#### 🤝 Constructor Battles & Teammate Analysis")
         
         battle_cols = st.columns(2)
@@ -1261,7 +1195,7 @@ with tab2:
         st.write("• Real-time standings updates")
         st.write("• Detailed performance analytics")  
         st.write("• Constructor vs constructor battles")
-        
+        st.markdown('</div>', unsafe_allow_html=True)
 
 # Tab 3: Constructors' Championship Standings and Chart - REMOVED team member contribution section
 with tab3:
