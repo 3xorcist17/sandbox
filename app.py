@@ -792,6 +792,7 @@ with tab2:
             # Create a more realistic championship progression simulation
             def calculate_realistic_progression():
                 progression_data = []
+                all_drivers = [d['driver'] for d in drivers]  # Get all 20 drivers
                 
                 # Get final championship order for reference
                 final_standings = sorted(st.session_state.total_driver_points.items(), key=lambda x: x[1], reverse=True)
@@ -800,30 +801,41 @@ with tab2:
                 for race_num in range(1, st.session_state.races_completed + 1):
                     race_standings = []
                     
-                    # Simulate points distribution for this race
-                    for i, (driver, final_points) in enumerate(final_standings):
-                        # Calculate progressive points - more realistic distribution
-                        if final_points > 0:
-                            # Use a combination of final position influence and some randomness
+                    # Calculate points for all drivers, not just those with final points
+                    for driver in all_drivers:
+                        # Find this driver's final points
+                        final_points = st.session_state.total_driver_points.get(driver, 0)
+                        final_position = next((i for i, (d, p) in enumerate(final_standings) if d == driver), 19)
+                        
+                        if final_points > 0 or race_num == 1:  # Give everyone a chance in early races
+                            # Use a combination of final position influence and some variation
                             base_progress = (race_num / st.session_state.races_completed)
-                            position_factor = 1 - (i / len(final_standings)) * 0.3  # Better drivers get slight advantage
                             
-                            # Add some variation to make it more realistic
+                            # Better final position = higher chance of good early positions
+                            position_factor = max(0.1, 1 - (final_position / 20) * 0.7)
+                            
+                            # Add consistent but varied randomness
                             import random
-                            random.seed(hash(driver + str(race_num)))  # Consistent randomness
-                            variation = random.uniform(0.8, 1.2)
+                            random.seed(hash(driver + str(race_num)))
+                            variation = random.uniform(0.6, 1.4)
                             
-                            estimated_points = int(final_points * base_progress * position_factor * variation)
-                            estimated_points = max(0, estimated_points)  # No negative points
+                            # Calculate progressive points
+                            if final_points > 0:
+                                estimated_points = int(final_points * base_progress * position_factor * variation)
+                            else:
+                                # Give drivers without final points some early race potential
+                                estimated_points = int(random.uniform(0, 10) * (1 - base_progress) * variation)
+                            
+                            estimated_points = max(0, estimated_points)
                         else:
                             estimated_points = 0
                         
                         race_standings.append((driver, estimated_points))
                     
-                    # Sort by points for this race (add driver name for consistent tie-breaking)
-                    race_standings.sort(key=lambda x: (x[1], x[0]), reverse=True)
+                    # Sort by points (descending) and then by driver name for tie-breaking
+                    race_standings.sort(key=lambda x: (-x[1], x[0]))
                     
-                    # Assign positions correctly without duplicates
+                    # Assign sequential positions 1-20
                     for position, (driver, points) in enumerate(race_standings, 1):
                         team = next(d['team'] for d in drivers if d['driver'] == driver)
                         
@@ -914,8 +926,8 @@ with tab2:
                 .pos-3 { background: linear-gradient(135deg, #CD7F32, #B8860B) !important; color: #000000 !important; border: 2px solid #A0522D !important; }
                 .pos-top5 { background: linear-gradient(135deg, #3498db, #2980b9) !important; color: #ffffff !important; border: 1px solid #2471a3 !important; }
                 .pos-points { background: linear-gradient(135deg, #2ecc71, #27ae60) !important; color: #000000 !important; border: 1px solid #239b56 !important; }
-                .pos-midfield { background: linear-gradient(135deg, #f39c12, #e67e22) !important; color: #000000 !important; border: 1px solid #d68910 !important; }
-                .pos-back { background: linear-gradient(135deg, #ecf0f1, #bdc3c7) !important; color: #000000 !important; border: 1px solid #aab7b8 !important; }
+                .pos-midfield { background: linear-gradient(135deg, #9b59b6, #8e44ad) !important; color: #ffffff !important; border: 1px solid #7d3c98 !important; }
+                .pos-back { background: linear-gradient(135deg, #e74c3c, #c0392b) !important; color: #ffffff !important; border: 1px solid #a93226 !important; }
                 </style>
                 """, unsafe_allow_html=True)
                 
@@ -989,11 +1001,11 @@ with tab2:
                             <span style="color: #000000;">Points (6-10)</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px; padding: 5px;">
-                            <div style="width: 25px; height: 25px; background: linear-gradient(135deg, #f39c12, #e67e22); border-radius: 4px;"></div>
+                            <div style="width: 25px; height: 25px; background: linear-gradient(135deg, #9b59b6, #8e44ad); border-radius: 4px;"></div>
                             <span style="color: #000000;">Mid-field (11-15)</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px; padding: 5px;">
-                            <div style="width: 25px; height: 25px; background: linear-gradient(135deg, #ecf0f1, #bdc3c7); border-radius: 4px;"></div>
+                            <div style="width: 25px; height: 25px; background: linear-gradient(135deg, #e74c3c, #c0392b); border-radius: 4px;"></div>
                             <span style="color: #000000;">Back of Grid (16+)</span>
                         </div>
                     </div>
