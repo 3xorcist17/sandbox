@@ -667,7 +667,8 @@ with tab1:
         st.markdown('</div>', unsafe_allow_html=True)
 
 
-# Tab 2: Enhanced Drivers' Championship Standings with Advanced Analytics
+
+# Tab 2: Enhanced Drivers' Championship Standings with Real Position Heat Map
 # First, we need to modify Tab 1 to store complete race results (add this to Tab 1 after race finishes):
 # In Tab 1, after the race finishes, add this code to store complete results:
 # if len(st.session_state.finish_order) >= 3:
@@ -796,19 +797,23 @@ with tab2:
         
         st.markdown("---")
         
-        # Championship Position Heat Map - REAL POSITIONS VERSION
-        if st.session_state.races_completed > 1 and hasattr(st.session_state, 'complete_race_history') and len(st.session_state.complete_race_history) > 1:
-            st.markdown("#### 🔥 Championship Position Heat Map")
-            st.markdown("*Shows actual race finishing positions from completed races*")
+        # Race Results Table - All Drivers All Races
+        if st.session_state.races_completed > 0 and hasattr(st.session_state, 'complete_race_history') and len(st.session_state.complete_race_history) > 0:
+            st.markdown("#### Race Results Table")
+            st.markdown("*Complete finishing positions for all drivers in all races*")
             
-            # Create heat map data based on real race results
-            def create_position_heatmap():
-                heat_map_data = []
+            # Create table data based on real race results
+            def create_results_table():
+                table_data = []
                 
-                # Initialize position tracking for all drivers
+                # Initialize data for all drivers
                 for driver_info in drivers:
                     driver = driver_info['driver']
-                    row_data = {'Driver': driver}
+                    team = driver_info['team']
+                    row_data = {
+                        'Driver': driver,
+                        'Team': team
+                    }
                     
                     # For each completed race, find this driver's actual finishing position
                     for race_data in st.session_state.complete_race_history:
@@ -817,135 +822,56 @@ with tab2:
                         
                         # Find the driver's position in this race
                         position = 20  # Default to last if not found
-                        for pos, race_driver, team in race_results:
+                        for pos, race_driver, team_name in race_results:
                             if race_driver == driver:
                                 position = pos
                                 break
                         
-                        row_data[f'Race_{race_num}'] = position
+                        row_data[f'Race {race_num}'] = position
                     
-                    heat_map_data.append(row_data)
+                    table_data.append(row_data)
                 
                 # Sort by current championship position
                 final_standings = sorted(st.session_state.total_driver_points.items(), key=lambda x: x[1], reverse=True)
                 driver_order = [d for d, _ in final_standings]
                 
-                # Reorder heat_map_data to match championship standings
-                ordered_heat_map_data = []
+                # Reorder table_data to match championship standings
+                ordered_table_data = []
                 for driver in driver_order:
-                    driver_data = next((d for d in heat_map_data if d['Driver'] == driver), None)
+                    driver_data = next((d for d in table_data if d['Driver'] == driver), None)
                     if driver_data:
-                        ordered_heat_map_data.append(driver_data)
+                        ordered_table_data.append(driver_data)
                 
-                return ordered_heat_map_data
+                return ordered_table_data
             
-            heat_map_data = create_position_heatmap()
+            table_data = create_results_table()
             
-            # Create WORKING heat map visualization
-            heat_map_container = st.container()
-            
-            with heat_map_container:
-                # Create the heat map using a table approach that works
-                st.markdown("""
-                <style>
-                .heatmap-table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin: 20px 0;
-                    background: rgba(255, 255, 255, 0.95);
-                    border-radius: 10px;
-                    overflow: hidden;
-                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-                }
+            # Create and display the results table
+            if table_data:
+                # Convert to DataFrame for better display
+                import pandas as pd
+                df = pd.DataFrame(table_data)
                 
-                .heatmap-table th {
-                    background: linear-gradient(135deg, #34495e, #2c3e50);
-                    color: white;
-                    padding: 12px 8px;
-                    text-align: center;
-                    font-weight: bold;
-                    font-size: 12px;
-                    border: 1px solid rgba(255, 255, 255, 0.1);
-                }
-                
-                .heatmap-table td {
-                    padding: 8px;
-                    text-align: center;
-                    font-weight: bold;
-                    font-size: 11px;
-                    border: 1px solid rgba(0, 0, 0, 0.1);
-                    transition: transform 0.2s ease;
-                }
-                
-                .heatmap-table td:hover {
-                    transform: scale(1.1);
-                    z-index: 10;
-                    position: relative;
-                }
-                
-                .heatmap-table .driver-name {
-                    background: rgba(255, 255, 255, 0.95);
-                    font-weight: bold;
-                    color: #000000;
-                    text-align: left;
-                    padding: 8px 12px;
-                    border-left: 4px solid var(--team-color);
-                    min-width: 100px;
-                }
-                
-                .pos-1 { background: linear-gradient(135deg, #FFD700, #FFA500) !important; color: #000000 !important; border: 2px solid #FF8C00 !important; }
-                .pos-2 { background: linear-gradient(135deg, #C0C0C0, #A8A8A8) !important; color: #000000 !important; border: 2px solid #999999 !important; }
-                .pos-3 { background: linear-gradient(135deg, #CD7F32, #B8860B) !important; color: #000000 !important; border: 2px solid #A0522D !important; }
-                .pos-top5 { background: linear-gradient(135deg, #3498db, #2980b9) !important; color: #ffffff !important; border: 1px solid #2471a3 !important; }
-                .pos-points { background: linear-gradient(135deg, #2ecc71, #27ae60) !important; color: #000000 !important; border: 1px solid #239b56 !important; }
-                .pos-midfield { background: linear-gradient(135deg, #9b59b6, #8e44ad) !important; color: #ffffff !important; border: 1px solid #7d3c98 !important; }
-                .pos-back { background: linear-gradient(135deg, #e74c3c, #c0392b) !important; color: #ffffff !important; border: 1px solid #a93226 !important; }
-                </style>
-                """, unsafe_allow_html=True)
-                
-                # Build the HTML table
-                table_html = '<table class="heatmap-table"><thead><tr><th>Driver</th>'
-                
-                # Add race headers
-                for race in range(1, st.session_state.races_completed + 1):
-                    table_html += f'<th>R{race}</th>'
-                table_html += '</tr></thead><tbody>'
-                
-                # Add driver rows
-                for driver_data in heat_map_data:
-                    driver = driver_data['Driver']
-                    driver_team = next(d['team'] for d in drivers if d['driver'] == driver)
-                    team_color = team_colors.get(driver_team, '#3498db')
-                    
-                    table_html += f'<tr><td class="driver-name" style="--team-color: {team_color};">{driver}</td>'
-                    
-                    # Add position cells for each race
-                    for race in range(1, st.session_state.races_completed + 1):
-                        position = driver_data.get(f'Race_{race}', 20)
-                        
-                        # Determine CSS class based on position
-                        if position == 1:
-                            cell_class = 'pos-1'
-                        elif position == 2:
-                            cell_class = 'pos-2'
-                        elif position == 3:
-                            cell_class = 'pos-3'
-                        elif position <= 5:
-                            cell_class = 'pos-top5'
-                        elif position <= 10:
-                            cell_class = 'pos-points'
-                        elif position <= 15:
-                            cell_class = 'pos-midfield'
+                # Style the DataFrame
+                def style_position(val):
+                    if isinstance(val, int):
+                        if val == 1:
+                            return 'background-color: #FFD700; color: #000000; font-weight: bold;'
+                        elif val == 2:
+                            return 'background-color: #C0C0C0; color: #000000; font-weight: bold;'
+                        elif val == 3:
+                            return 'background-color: #CD7F32; color: #000000; font-weight: bold;'
+                        elif val <= 10:
+                            return 'background-color: #90EE90; color: #000000;'
                         else:
-                            cell_class = 'pos-back'
-                        
-                        table_html += f'<td class="{cell_class}" title="{driver} - Race {race}: P{position} ({driver_team})">P{position}</td>'
-                    
-                    table_html += '</tr>'
+                            return 'background-color: #FFB6C1; color: #000000;'
+                    return ''
                 
-                table_html += '</tbody></table>'
+                # Apply styling to race columns only
+                race_columns = [col for col in df.columns if col.startswith('Race ')]
+                styled_df = df.style.applymap(style_position, subset=race_columns)
                 
-                st.markdown(table_html, unsafe_allow_html=True)
+                st.dataframe(styled_df, use_container_width=True, height=600)
                 
                 # Add legend
                 st.markdown('''
@@ -953,41 +879,32 @@ with tab2:
                     <h6 style="margin: 0 0 15px 0; color: #000000; text-align: center;">Position Legend</h6>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; font-size: 11px;">
                         <div style="display: flex; align-items: center; gap: 8px; padding: 5px;">
-                            <div style="width: 25px; height: 25px; background: linear-gradient(135deg, #FFD700, #FFA500); border-radius: 4px; border: 2px solid #FF8C00;"></div>
+                            <div style="width: 25px; height: 25px; background: #FFD700; border-radius: 4px; border: 2px solid #000000;"></div>
                             <span style="color: #000000; font-weight: bold;">1st Place</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px; padding: 5px;">
-                            <div style="width: 25px; height: 25px; background: linear-gradient(135deg, #C0C0C0, #A8A8A8); border-radius: 4px; border: 2px solid #999999;"></div>
+                            <div style="width: 25px; height: 25px; background: #C0C0C0; border-radius: 4px; border: 2px solid #000000;"></div>
                             <span style="color: #000000; font-weight: bold;">2nd Place</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px; padding: 5px;">
-                            <div style="width: 25px; height: 25px; background: linear-gradient(135deg, #CD7F32, #B8860B); border-radius: 4px; border: 2px solid #A0522D;"></div>
+                            <div style="width: 25px; height: 25px; background: #CD7F32; border-radius: 4px; border: 2px solid #000000;"></div>
                             <span style="color: #000000; font-weight: bold;">3rd Place</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px; padding: 5px;">
-                            <div style="width: 25px; height: 25px; background: linear-gradient(135deg, #3498db, #2980b9); border-radius: 4px;"></div>
-                            <span style="color: #000000;">Top 5</span>
+                            <div style="width: 25px; height: 25px; background: #90EE90; border-radius: 4px;"></div>
+                            <span style="color: #000000;">Points (4-10)</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px; padding: 5px;">
-                            <div style="width: 25px; height: 25px; background: linear-gradient(135deg, #2ecc71, #27ae60); border-radius: 4px;"></div>
-                            <span style="color: #000000;">Points (6-10)</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px; padding: 5px;">
-                            <div style="width: 25px; height: 25px; background: linear-gradient(135deg, #9b59b6, #8e44ad); border-radius: 4px;"></div>
-                            <span style="color: #000000;">Mid-field (11-15)</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 8px; padding: 5px;">
-                            <div style="width: 25px; height: 25px; background: linear-gradient(135deg, #e74c3c, #c0392b); border-radius: 4px;"></div>
-                            <span style="color: #000000;">Back of Grid (16+)</span>
+                            <div style="width: 25px; height: 25px; background: #FFB6C1; border-radius: 4px;"></div>
+                            <span style="color: #000000;">No Points (11-20)</span>
                         </div>
                     </div>
-                    <p style="margin: 15px 0 0 0; font-size: 10px; color: #666; font-style: italic; text-align: center;">
-                        * All positions are actual race finishing positions from completed races
-                    </p>
                 </div>
                 ''', unsafe_allow_html=True)
+            else:
+                st.warning("No race data available. Complete some races first!")
         else:
-            st.info("🔄 Complete at least 2 races to see the championship position heat map!")
+            st.info("Complete at least 1 race to see the race results table!")
         
         st.markdown("---")
         
