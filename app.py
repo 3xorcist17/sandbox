@@ -379,6 +379,7 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 ])
 
 # Tab 1: Race & Results (unchanged from original, affected by CSS updates)
+# Tab 1: Race & Results (with proper race storage)
 with tab1:
     if st.button("🏁 Start Race"):
         st.session_state.progress_values = [0] * 20
@@ -539,6 +540,17 @@ with tab1:
                 st.session_state.races_completed += 1
                 st.session_state.race_started = False
                 
+                # CRITICAL: Store complete race results BEFORE they get lost
+                if 'complete_race_history' not in st.session_state:
+                    st.session_state.complete_race_history = []
+                
+                complete_race_results = {
+                    "race_number": st.session_state.races_completed,
+                    "results": [(pos + 1, driver_info['driver'], driver_info['team']) 
+                               for pos, driver_info in enumerate(st.session_state.finish_order)]
+                }
+                st.session_state.complete_race_history.append(complete_race_results)
+                
                 for idx, (placeholder, _) in enumerate(progress_placeholders):
                     if idx < len(current_leaderboard):
                         driver_info = current_leaderboard[idx]
@@ -666,22 +678,7 @@ with tab1:
             st.markdown('</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-
-
-# Tab 2: Enhanced Drivers' Championship Standings with Real Position Heat Map
-# First, we need to modify Tab 1 to store complete race results (add this to Tab 1 after race finishes):
-# In Tab 1, after the race finishes, add this code to store complete results:
-# if len(st.session_state.finish_order) >= 3:
-#     complete_race_results = {
-#         "Race": st.session_state.races_completed,
-#         "Results": [(pos + 1, driver_info['driver'], driver_info['team']) 
-#                    for pos, driver_info in enumerate(st.session_state.finish_order)]
-#     }
-#     if 'complete_race_history' not in st.session_state:
-#         st.session_state.complete_race_history = []
-#     st.session_state.complete_race_history.append(complete_race_results)
-
-# Tab 2: Enhanced Drivers' Championship Standings with Real Position Heat Map
+# Tab 2: Enhanced Drivers' Championship with Actual Race Results
 with tab2:
     st.markdown('<div class="race-container">', unsafe_allow_html=True)
     st.markdown("### 🏆 Drivers' Championship Hub")
@@ -797,13 +794,16 @@ with tab2:
         
         st.markdown("---")
         
-        # Race Results Table - All Drivers All Races
-        if st.session_state.races_completed > 0 and hasattr(st.session_state, 'complete_race_history') and len(st.session_state.complete_race_history) > 0:
-            st.markdown("#### Race Results Table")
+        # Race Results Table - Using ACTUAL race results
+        if (st.session_state.races_completed > 0 and 
+            hasattr(st.session_state, 'complete_race_history') and 
+            len(st.session_state.complete_race_history) > 0):
+            
+            st.markdown("#### 📋 Race Results Table")
             st.markdown("*Complete finishing positions for all drivers in all races*")
             
-            # Create table data based on real race results
-            def create_results_table():
+            # Create table with actual race results
+            def create_actual_results_table():
                 table_data = []
                 
                 # Initialize data for all drivers
@@ -815,19 +815,20 @@ with tab2:
                         'Team': team
                     }
                     
-                    # For each completed race, find this driver's actual finishing position
+                    # For each completed race, get the actual finishing position
                     for race_data in st.session_state.complete_race_history:
-                        race_num = race_data['Race']
-                        race_results = race_data['Results']  # List of (position, driver, team) tuples
+                        race_num = race_data['race_number']
+                        race_results = race_data['results']  # List of (position, driver, team) tuples
                         
-                        # Find the driver's position in this race
-                        position = 20  # Default to last if not found
-                        for pos, race_driver, team_name in race_results:
+                        # Find this driver's actual position in this race
+                        position = None
+                        for pos, race_driver, _ in race_results:
                             if race_driver == driver:
                                 position = pos
                                 break
                         
-                        row_data[f'Race {race_num}'] = position
+                        # If driver not found in results (shouldn't happen), mark as DNF
+                        row_data[f'Race {race_num}'] = position if position is not None else "DNF"
                     
                     table_data.append(row_data)
                 
@@ -844,15 +845,14 @@ with tab2:
                 
                 return ordered_table_data
             
-            table_data = create_results_table()
+            table_data = create_actual_results_table()
             
             # Create and display the results table
             if table_data:
-                # Convert to DataFrame for better display
                 import pandas as pd
                 df = pd.DataFrame(table_data)
                 
-                # Style the DataFrame
+                # Style the DataFrame based on actual positions
                 def style_position(val):
                     if isinstance(val, int):
                         if val == 1:
@@ -865,13 +865,17 @@ with tab2:
                             return 'background-color: #90EE90; color: #000000;'
                         else:
                             return 'background-color: #FFB6C1; color: #000000;'
+                    elif val == "DNF":
+                        return 'background-color: #FF6B6B; color: #000000; font-weight: bold;'
                     return ''
                 
                 # Apply styling to race columns only
                 race_columns = [col for col in df.columns if col.startswith('Race ')]
-                styled_df = df.style.applymap(style_position, subset=race_columns)
-                
-                st.dataframe(styled_df, use_container_width=True, height=600)
+                if race_columns:
+                    styled_df = df.style.applymap(style_position, subset=race_columns)
+                    st.dataframe(styled_df, use_container_width=True, height=600)
+                else:
+                    st.dataframe(df, use_container_width=True, height=600)
                 
                 # Add legend
                 st.markdown('''
@@ -897,6 +901,10 @@ with tab2:
                         <div style="display: flex; align-items: center; gap: 8px; padding: 5px;">
                             <div style="width: 25px; height: 25px; background: #FFB6C1; border-radius: 4px;"></div>
                             <span style="color: #000000;">No Points (11-20)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 5px;">
+                            <div style="width: 25px; height: 25px; background: #FF6B6B; border-radius: 4px;"></div>
+                            <span style="color: #000000; font-weight: bold;">DNF</span>
                         </div>
                     </div>
                 </div>
@@ -1018,8 +1026,6 @@ with tab2:
             team = next(d['team'] for d in drivers if d['driver'] == driver)
             wins = st.session_state.driver_wins[driver]
             podiums = st.session_state.driver_podiums[driver]
-            rating = calculate_driver_rating(driver)
-            avg_points = points / st.session_state.races_completed if st.session_state.races_completed > 0 else 0
             
             # Position styling
             card_class = "position-1" if pos == 1 else "position-2" if pos == 2 else "position-3" if pos == 3 else ""
