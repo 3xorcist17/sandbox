@@ -862,9 +862,9 @@ with tab2:
                         elif val == 3:
                             return 'background-color: #CD7F32; color: #000000; font-weight: bold;'
                         elif val <= 10:
-                            return 'background-color: #90EE90; color: #000000;'
+                            return 'background-color: #E6F3FF; color: #000000;'  # Light pale blue
                         else:
-                            return 'background-color: #FFB6C1; color: #000000;'
+                            return 'background-color: #FFF0E6; color: #000000;'  # Light pale orange
                     elif val == "DNF":
                         return 'background-color: #FF6B6B; color: #000000; font-weight: bold;'
                     return ''
@@ -873,11 +873,15 @@ with tab2:
                 race_columns = [col for col in df.columns if col.startswith('Race ')]
                 if race_columns:
                     styled_df = df.style.applymap(style_position, subset=race_columns)
-                    st.dataframe(styled_df, use_container_width=True, height=600)
+                    
+                    # Display table with full height to avoid scrolling
+                    table_height = min(800, len(df) * 35 + 100)  # Dynamic height based on rows
+                    st.dataframe(styled_df, use_container_width=True, height=table_height)
                 else:
-                    st.dataframe(df, use_container_width=True, height=600)
+                    table_height = min(800, len(df) * 35 + 100)
+                    st.dataframe(df, use_container_width=True, height=table_height)
                 
-                # Add legend
+                # Add legend with updated colors
                 st.markdown('''
                 <div style="margin-top: 15px; padding: 15px; background: rgba(255, 255, 255, 0.9); border-radius: 10px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);">
                     <h6 style="margin: 0 0 15px 0; color: #000000; text-align: center;">Position Legend</h6>
@@ -895,11 +899,11 @@ with tab2:
                             <span style="color: #000000; font-weight: bold;">3rd Place</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px; padding: 5px;">
-                            <div style="width: 25px; height: 25px; background: #90EE90; border-radius: 4px;"></div>
+                            <div style="width: 25px; height: 25px; background: #E6F3FF; border-radius: 4px;"></div>
                             <span style="color: #000000;">Points (4-10)</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px; padding: 5px;">
-                            <div style="width: 25px; height: 25px; background: #FFB6C1; border-radius: 4px;"></div>
+                            <div style="width: 25px; height: 25px; background: #FFF0E6; border-radius: 4px;"></div>
                             <span style="color: #000000;">No Points (11-20)</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px; padding: 5px;">
