@@ -679,6 +679,7 @@ with tab1:
         st.markdown('</div>', unsafe_allow_html=True)
 
 # Tab 2: Enhanced Drivers' Championship with Actual Race Results
+# Tab 2: Enhanced Drivers' Championship with Actual Race Results
 with tab2:
     st.markdown('<div class="race-container">', unsafe_allow_html=True)
     st.markdown("### 🏆 Drivers' Championship Hub")
@@ -851,6 +852,9 @@ with tab2:
             if table_data:
                 import pandas as pd
                 df = pd.DataFrame(table_data)
+                
+                # Reset index to start from 1 instead of 0
+                df.index = df.index + 1
                 
                 # Style the DataFrame based on actual positions
                 def style_position(val):
