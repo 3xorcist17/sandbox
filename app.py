@@ -6,7 +6,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 st.title("Formula 1 Racing 🏎️🏁🚥🏆")
-st.set_page_config(page_title="Formula 1", layout="wide")
+st.set_page_config(page_title="Formula 1", page_icon="🏎️", layout="wide")
 
 # Updated CSS with grey/ash colors changed to black
 st.markdown("""
