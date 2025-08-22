@@ -668,7 +668,19 @@ with tab1:
 
 
 # Tab 2: Enhanced Drivers' Championship Standings with Advanced Analytics
-# Tab 2: Enhanced Drivers' Championship Standings with Advanced Analytics
+# First, we need to modify Tab 1 to store complete race results (add this to Tab 1 after race finishes):
+# In Tab 1, after the race finishes, add this code to store complete results:
+# if len(st.session_state.finish_order) >= 3:
+#     complete_race_results = {
+#         "Race": st.session_state.races_completed,
+#         "Results": [(pos + 1, driver_info['driver'], driver_info['team']) 
+#                    for pos, driver_info in enumerate(st.session_state.finish_order)]
+#     }
+#     if 'complete_race_history' not in st.session_state:
+#         st.session_state.complete_race_history = []
+#     st.session_state.complete_race_history.append(complete_race_results)
+
+# Tab 2: Enhanced Drivers' Championship Standings with Real Position Heat Map
 with tab2:
     st.markdown('<div class="race-container">', unsafe_allow_html=True)
     st.markdown("### 🏆 Drivers' Championship Hub")
@@ -784,90 +796,50 @@ with tab2:
         
         st.markdown("---")
         
-        # Championship Position Heat Map - FIXED VERSION
-        if st.session_state.races_completed > 1:
+        # Championship Position Heat Map - REAL POSITIONS VERSION
+        if st.session_state.races_completed > 1 and hasattr(st.session_state, 'complete_race_history') and len(st.session_state.complete_race_history) > 1:
             st.markdown("#### 🔥 Championship Position Heat Map")
-            st.markdown("*Simulated championship progression based on current standings*")
+            st.markdown("*Shows actual race finishing positions from completed races*")
             
-            # Create a more realistic championship progression simulation
-            def calculate_realistic_progression():
-                progression_data = []
-                all_drivers = [d['driver'] for d in drivers]  # Get all 20 drivers
+            # Create heat map data based on real race results
+            def create_position_heatmap():
+                heat_map_data = []
                 
-                # Get final championship order for reference
+                # Initialize position tracking for all drivers
+                for driver_info in drivers:
+                    driver = driver_info['driver']
+                    row_data = {'Driver': driver}
+                    
+                    # For each completed race, find this driver's actual finishing position
+                    for race_data in st.session_state.complete_race_history:
+                        race_num = race_data['Race']
+                        race_results = race_data['Results']  # List of (position, driver, team) tuples
+                        
+                        # Find the driver's position in this race
+                        position = 20  # Default to last if not found
+                        for pos, race_driver, team in race_results:
+                            if race_driver == driver:
+                                position = pos
+                                break
+                        
+                        row_data[f'Race_{race_num}'] = position
+                    
+                    heat_map_data.append(row_data)
+                
+                # Sort by current championship position
                 final_standings = sorted(st.session_state.total_driver_points.items(), key=lambda x: x[1], reverse=True)
+                driver_order = [d for d, _ in final_standings]
                 
-                # Create championship standings after each race
-                for race_num in range(1, st.session_state.races_completed + 1):
-                    race_standings = []
-                    
-                    # Calculate points for all drivers, not just those with final points
-                    for driver in all_drivers:
-                        # Find this driver's final points
-                        final_points = st.session_state.total_driver_points.get(driver, 0)
-                        final_position = next((i for i, (d, p) in enumerate(final_standings) if d == driver), 19)
-                        
-                        if final_points > 0 or race_num == 1:  # Give everyone a chance in early races
-                            # Use a combination of final position influence and some variation
-                            base_progress = (race_num / st.session_state.races_completed)
-                            
-                            # Better final position = higher chance of good early positions
-                            position_factor = max(0.1, 1 - (final_position / 20) * 0.7)
-                            
-                            # Add consistent but varied randomness
-                            import random
-                            random.seed(hash(driver + str(race_num)))
-                            variation = random.uniform(0.6, 1.4)
-                            
-                            # Calculate progressive points
-                            if final_points > 0:
-                                estimated_points = int(final_points * base_progress * position_factor * variation)
-                            else:
-                                # Give drivers without final points some early race potential
-                                estimated_points = int(random.uniform(0, 10) * (1 - base_progress) * variation)
-                            
-                            estimated_points = max(0, estimated_points)
-                        else:
-                            estimated_points = 0
-                        
-                        race_standings.append((driver, estimated_points))
-                    
-                    # Sort by points (descending) and then by driver name for tie-breaking
-                    race_standings.sort(key=lambda x: (-x[1], x[0]))
-                    
-                    # Assign sequential positions 1-20
-                    for position, (driver, points) in enumerate(race_standings, 1):
-                        team = next(d['team'] for d in drivers if d['driver'] == driver)
-                        
-                        progression_data.append({
-                            'Race': race_num,
-                            'Driver': driver,
-                            'Points': points,
-                            'Team': team,
-                            'Position': position
-                        })
+                # Reorder heat_map_data to match championship standings
+                ordered_heat_map_data = []
+                for driver in driver_order:
+                    driver_data = next((d for d in heat_map_data if d['Driver'] == driver), None)
+                    if driver_data:
+                        ordered_heat_map_data.append(driver_data)
                 
-                return progression_data
+                return ordered_heat_map_data
             
-            progression_data = calculate_realistic_progression()
-            
-            # Create heat map data matrix - FIXED
-            heat_map_data = []
-            
-            # Sort drivers by final championship position for better visualization
-            sorted_drivers = [driver for driver, _ in sorted_driver_standings]
-            
-            for driver in sorted_drivers:
-                driver_progression = [d for d in progression_data if d['Driver'] == driver]
-                driver_progression.sort(key=lambda x: x['Race'])
-                
-                row_data = {'Driver': driver}
-                for race_data in driver_progression:
-                    race_num = race_data['Race']
-                    position = race_data['Position']
-                    row_data[f'Race_{race_num}'] = position
-                
-                heat_map_data.append(row_data)
+            heat_map_data = create_position_heatmap()
             
             # Create WORKING heat map visualization
             heat_map_container = st.container()
@@ -1010,10 +982,12 @@ with tab2:
                         </div>
                     </div>
                     <p style="margin: 15px 0 0 0; font-size: 10px; color: #666; font-style: italic; text-align: center;">
-                        * Positions are simulated based on current championship standings and may not reflect actual race-by-race results
+                        * All positions are actual race finishing positions from completed races
                     </p>
                 </div>
                 ''', unsafe_allow_html=True)
+        else:
+            st.info("🔄 Complete at least 2 races to see the championship position heat map!")
         
         st.markdown("---")
         
@@ -1091,7 +1065,7 @@ with tab2:
                     
                     # Battle status
                     if gap == 0:
-                        battle_status = "🏁 PERFECTLY TIED"
+                        battle_status = "🔥 PERFECTLY TIED"
                         battle_color = "#FFA500"
                     elif gap <= 5:
                         battle_status = "🔥 INTENSE BATTLE"
