@@ -878,11 +878,11 @@ with tab2:
                 if race_columns:
                     styled_df = df.style.applymap(style_position, subset=race_columns)
                     
-                    # Display table with full height to avoid scrolling
-                    table_height = min(800, len(df) * 35 + 100)  # Dynamic height based on rows
+                    # Display table with exact height to avoid extra rows
+                    table_height = len(df) * 35 + 50  # Exact height: rows * row_height + header
                     st.dataframe(styled_df, use_container_width=True, height=table_height)
                 else:
-                    table_height = min(800, len(df) * 35 + 100)
+                    table_height = len(df) * 35 + 50  # Exact height: rows * row_height + header
                     st.dataframe(df, use_container_width=True, height=table_height)
                 
                 # Add legend with updated colors
