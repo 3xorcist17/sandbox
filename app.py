@@ -251,7 +251,7 @@ st.markdown("""
 
 # Team and driver data (unchanged from original)
 teams_drivers = {
-    "Alpine": ["Gas", "Col"],
+    "Alpine": ["Gas", "Doo"],
     "Aston Martin": ["Alo", "Str"],
     "Ferrari": ["Lec", "Ham"],
     "Haas": ["Oco", "Bea"],
