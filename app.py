@@ -770,11 +770,11 @@ with tab2:
             # Enhanced styling with better layout
             fig.update_traces(
                 textposition="outside", 
-                texttemplate="<b>%{text} pts</b>",
+                texttemplate="%{text} pts",
                 marker_line_width=3,
                 marker_line_color="rgba(0,0,0,0.4)",
                 textfont=dict(size=12, color="black"),
-                hovertemplate="<b>%{customdata[1]}</b><br>" +
+                hovertemplate="%{customdata[1]}<br>" +
                               "Points: <b>%{x}</b><br>" +
                               "Team: %{customdata[3]}<br>" +
                               "Wins: %{customdata[0]}<br>" +
@@ -792,7 +792,7 @@ with tab2:
                 yaxis_title="",
                 legend_title="<b>Constructor Teams</b>",
                 title={
-                    'text': "<b>Championship Standings - Points Battle</b>",
+                    'text': "Championship Standings - Points Battle",
                     'x': 0.5,
                     'xanchor': 'center',
                     'font': {'size': 18, 'color': '#2c3e50'}
@@ -827,7 +827,7 @@ with tab2:
                     font=dict(size=10)
                 ),
                 margin=dict(l=20, r=60, t=60, b=80),
-                showlegend=True
+                showlegend=False
             )
             
             # Add subtle animations and interactions
