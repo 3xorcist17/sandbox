@@ -728,7 +728,7 @@ with tab2:
         st.markdown("#### 📊 Championship Battle")
         
         # Create enhanced horizontal bar chart
-        top_drivers = sorted_driver_standings[:15]  # Show top 15 for better visibility
+        top_drivers = sorted_driver_standings[:20]  # Show top 15 for better visibility
         driver_chart_data = []
         for pos, (driver, points) in enumerate(top_drivers, 1):
             team = next(d['team'] for d in drivers if d['driver'] == driver)
@@ -736,7 +736,7 @@ with tab2:
             podiums = st.session_state.driver_podiums[driver]
             driver_chart_data.append({
                 "Driver": f"{driver}",
-                "Full_Name": f"P{pos} - {driver} ({team})",
+                "Full_Name": f"P{pos} - {driver}",
                 "Points": points,
                 "Team": team,
                 "Wins": wins,
