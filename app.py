@@ -756,7 +756,7 @@ with tab2:
                     text="Points",
                     color_discrete_map=team_colors,
                     orientation='h',
-                    title="Championship Standings - Top 10 Drivers"
+                    title="Championship Standings"
                 )
                 
                 # Enhanced styling
