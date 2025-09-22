@@ -776,7 +776,7 @@ with tab2:
                 marker_line_color="rgba(0,0,0,0.4)",
                 textfont=dict(size=12, color="black"),
                 hovertemplate="%{customdata[1]}<br>" +
-                              "Points: <b>%{x}</b><br>" +
+                              "Points: %{x}<br>" +
                               "Team: %{customdata[3]}<br>" +
                               "Wins: %{customdata[0]}<br>" +
                               "Podiums: %{customdata[1]}<br>" +
@@ -789,9 +789,9 @@ with tab2:
             fig.update_layout(
                 height=650,  # Increased height for better visibility
                 width=None,   # Let it use full container width
-                xaxis_title="<b>Championship Points</b>",
+                xaxis_title="Championship Points",
                 yaxis_title="",
-                legend_title="<b>Constructor Teams</b>",
+                legend_title="Constructor Teams",
                 title={
                     'text': "Championship Standings - Points Battle",
                     'x': 0.5,
