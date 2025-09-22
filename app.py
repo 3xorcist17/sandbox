@@ -1673,7 +1673,7 @@ with tab5:
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Tab 7: Driver Development System
+# Tab 6: Driver Development System
 with tab6:
     st.markdown('<div class="race-container">', unsafe_allow_html=True)
     st.markdown("### 🎯 Driver Development Center")
@@ -1747,30 +1747,42 @@ with tab6:
         </div>
         ''', unsafe_allow_html=True)
     
+    # Initialize tracking for processed races if not exists
+    if 'processed_dev_races' not in st.session_state:
+        st.session_state.processed_dev_races = set()
+    
     # Calculate development stats from race history
     if (hasattr(st.session_state, 'complete_race_history') and 
         len(st.session_state.complete_race_history) > 0):
         
-        # Process race results for development points
+        # Process only new races that haven't been processed yet
         for race_data in st.session_state.complete_race_history:
+            race_number = race_data['race_number']
             race_results = race_data['results']  # List of (position, driver, team) tuples
             
+            # Skip if this race has already been processed for development
+            if race_number in st.session_state.processed_dev_races:
+                continue
+                
+            # Process this race's results
             for position, driver, team in race_results:
-                # Skip if already processed this race for this driver
-                if len(st.session_state.driver_position_history[driver]) < len(st.session_state.complete_race_history):
-                    st.session_state.driver_position_history[driver].append(position)
-                    
-                    # Award development points based on position
-                    if position <= 3:
-                        dev_points = 3
-                    elif position <= 8:
-                        dev_points = 2
-                    elif position <= 15:
-                        dev_points = 1
-                    else:
-                        dev_points = 0
-                    
-                    st.session_state.driver_development_points[driver] += dev_points
+                # Add position to history
+                st.session_state.driver_position_history[driver].append(position)
+                
+                # Award development points based on position
+                if position <= 3:
+                    dev_points = 3
+                elif position <= 8:
+                    dev_points = 2
+                elif position <= 15:
+                    dev_points = 1
+                else:
+                    dev_points = 0
+                
+                st.session_state.driver_development_points[driver] += dev_points
+            
+            # Mark this race as processed
+            st.session_state.processed_dev_races.add(race_number)
         
         # Calculate development levels and bonuses
         for driver_info in drivers:
@@ -2227,6 +2239,7 @@ with tab6:
                 st.session_state.driver_position_history = {driver['driver']: [] for driver in drivers}
                 st.session_state.development_levels = {driver['driver']: 1 for driver in drivers}
                 st.session_state.development_bonuses = {driver['driver']: 0 for driver in drivers}
+                st.session_state.processed_dev_races = set()  # Clear processed races tracking
                 
                 st.success("All development progress reset!")
                 st.rerun()
@@ -2325,7 +2338,7 @@ with tab6:
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Tab 6: Season Summary - Enhanced with More Awards
+# Tab 7: Season Summary - Enhanced with More Awards
 with tab7:
     st.markdown('<div class="race-container">', unsafe_allow_html=True)
     st.markdown("### 🏁 Season Summary")
