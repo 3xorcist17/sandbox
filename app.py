@@ -1789,13 +1789,13 @@ with tab6:
             driver = driver_info['driver']
             dev_points = st.session_state.driver_development_points[driver]
             
-            if dev_points >= 50:
+            if dev_points >= 23:
                 level = 4
                 bonus = 3
-            elif dev_points >= 25:
+            elif dev_points >= 18:
                 level = 3
                 bonus = 2
-            elif dev_points >= 10:
+            elif dev_points >= 11:
                 level = 2
                 bonus = 1
             else:
@@ -1939,7 +1939,7 @@ with tab6:
                 <div class="rating-header">
                     <div>
                         <div class="driver-name">🌱 Level 1 - Rookie</div>
-                        <div class="team-name">0-9 Development Points</div>
+                        <div class="team-name">0-10 Development Points</div>
                     </div>
                     <div class="rating-score">{len(level_breakdown[1])}</div>
                 </div>
@@ -1973,7 +1973,7 @@ with tab6:
                 <div class="rating-header">
                     <div>
                         <div class="driver-name">📈 Level 2 - Developing</div>
-                        <div class="team-name">10-24 Development Points</div>
+                        <div class="team-name">11-17 Development Points</div>
                     </div>
                     <div class="rating-score">{len(level_breakdown[2])}</div>
                 </div>
@@ -2007,7 +2007,7 @@ with tab6:
                 <div class="rating-header">
                     <div>
                         <div class="driver-name">⭐ Level 3 - Experienced</div>
-                        <div class="team-name">25-49 Development Points</div>
+                        <div class="team-name">18-22 Development Points</div>
                     </div>
                     <div class="rating-score">{len(level_breakdown[3])}</div>
                 </div>
@@ -2041,7 +2041,7 @@ with tab6:
                 <div class="rating-header">
                     <div>
                         <div class="driver-name">🏆 Level 4 - Elite</div>
-                        <div class="team-name">50+ Development Points</div>
+                        <div class="team-name">23+ Development Points</div>
                     </div>
                     <div class="rating-score">{len(level_breakdown[4])}</div>
                 </div>
@@ -2340,10 +2340,10 @@ with tab6:
         with example_col2:
             st.markdown("##### 🚀 Development Levels")
             st.markdown('''
-            - **Level 1 (Rookie)**: 0-9 points → No bonus
-            - **Level 2 (Developing)**: 10-24 points → +1% bonus
-            - **Level 3 (Experienced)**: 25-49 points → +2% bonus
-            - **Level 4 (Elite)**: 50+ points → +3% bonus
+            - **Level 1 (Rookie)**: 0-10 points → No bonus
+            - **Level 2 (Developing)**: 11-17 points → +1% bonus
+            - **Level 3 (Experienced)**: 18-22 points → +2% bonus
+            - **Level 4 (Elite)**: 23+ points → +3% bonus
             
             *Bonuses add to base headstart percentage*
             ''')
