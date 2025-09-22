@@ -679,7 +679,7 @@ with tab1:
             st.markdown('</div>', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
-# Tab 2: Enhanced Drivers' Championship with Actual Race Results
+
 # Tab 2: Enhanced Drivers' Championship with Actual Race Results
 with tab2:
     st.markdown('<div class="race-container">', unsafe_allow_html=True)
