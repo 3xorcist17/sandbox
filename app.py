@@ -1674,23 +1674,30 @@ with tab5:
     st.markdown('</div>', unsafe_allow_html=True)
 
 # Tab 6: Driver Development System
+# Tab 6: Enhanced Driver Development System - Position Improvement Based
 with tab6:
     st.markdown('<div class="race-container">', unsafe_allow_html=True)
     st.markdown("### 🎯 Driver Development Center")
-    st.markdown("**Progressive Performance Enhancement System**")
+    st.markdown("**Progressive Position-Based Enhancement System**")
     
-    # Initialize development stats if not exists
+    # Initialize enhanced development stats if not exists
     if 'driver_development_points' not in st.session_state:
         st.session_state.driver_development_points = {driver['driver']: 0 for driver in drivers}
     if 'driver_position_history' not in st.session_state:
         st.session_state.driver_position_history = {driver['driver']: [] for driver in drivers}
+    if 'driver_rolling_average' not in st.session_state:
+        st.session_state.driver_rolling_average = {driver['driver']: 20 for driver in drivers}
+    if 'driver_improvement_streak' not in st.session_state:
+        st.session_state.driver_improvement_streak = {driver['driver']: 0 for driver in drivers}
+    if 'driver_career_achievements' not in st.session_state:
+        st.session_state.driver_career_achievements = {driver['driver']: [] for driver in drivers}
     if 'development_levels' not in st.session_state:
         st.session_state.development_levels = {driver['driver']: 1 for driver in drivers}
     if 'development_bonuses' not in st.session_state:
         st.session_state.development_bonuses = {driver['driver']: 0 for driver in drivers}
     
     # Development system explanation
-    st.markdown("#### 📈 How Driver Development Works")
+    st.markdown("#### 📈 Enhanced Development System")
     col_info1, col_info2, col_info3 = st.columns(3)
     
     with col_info1:
@@ -1698,15 +1705,15 @@ with tab6:
         <div class="rating-card" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: #000000;">
             <div class="rating-header">
                 <div>
-                    <div class="driver-name">📊 Position Scoring</div>
-                    <div class="team-name">Performance-Based Growth</div>
+                    <div class="driver-name">📊 Position Improvement</div>
+                    <div class="team-name">Beat Your Average</div>
                 </div>
             </div>
             <div style="font-size: 13px; line-height: 1.4; margin-top: 10px; color: #000000;">
-                • P1-P3: +3 Development Points<br>
-                • P4-P8: +2 Development Points<br>
-                • P9-P15: +1 Development Point<br>
-                • P16-P20: +0 Points
+                • 1-2 positions better: +1 point<br>
+                • 3-5 positions better: +2 points<br>
+                • 6-10 positions better: +3 points<br>
+                • 11+ positions better: +4 points
             </div>
         </div>
         ''', unsafe_allow_html=True)
@@ -1716,15 +1723,15 @@ with tab6:
         <div class="rating-card" style="background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); color: #000000;">
             <div class="rating-header">
                 <div>
-                    <div class="driver-name">⚡ Development Levels</div>
-                    <div class="team-name">Progressive Enhancement</div>
+                    <div class="driver-name">🔥 Streak Multipliers</div>
+                    <div class="team-name">Consecutive Improvement</div>
                 </div>
             </div>
             <div style="font-size: 13px; line-height: 1.4; margin-top: 10px; color: #000000;">
-                • Level 1: 0-9 Dev Points<br>
-                • Level 2: 10-24 Dev Points (+1% bonus)<br>
-                • Level 3: 25-49 Dev Points (+2% bonus)<br>
-                • Level 4: 50+ Dev Points (+3% bonus)
+                • 2 races improving: 1.2x bonus<br>
+                • 3 races improving: 1.5x bonus<br>
+                • 4+ races improving: 2.0x bonus<br>
+                • Consistency: +1 point
             </div>
         </div>
         ''', unsafe_allow_html=True)
@@ -1734,15 +1741,15 @@ with tab6:
         <div class="rating-card" style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: #000000;">
             <div class="rating-header">
                 <div>
-                    <div class="driver-name">🚀 Bonus System</div>
-                    <div class="team-name">Auto-Applied Advantages</div>
+                    <div class="driver-name">🏆 Breakthrough Bonuses</div>
+                    <div class="team-name">Career Milestones</div>
                 </div>
             </div>
             <div style="font-size: 13px; line-height: 1.4; margin-top: 10px; color: #000000;">
-                • Development bonuses automatically<br>
-                  add to base headstart percentage<br>
-                • Reward consistent performance<br>
-                • Create natural progression
+                • First Top 10: +5 points<br>
+                • First Top 5: +8 points<br>
+                • First Podium: +12 points<br>
+                • First Win: +20 points
             </div>
         </div>
         ''', unsafe_allow_html=True)
@@ -1751,7 +1758,7 @@ with tab6:
     if 'processed_dev_races' not in st.session_state:
         st.session_state.processed_dev_races = set()
     
-    # Calculate development stats from race history
+    # Calculate enhanced development stats from race history
     if (hasattr(st.session_state, 'complete_race_history') and 
         len(st.session_state.complete_race_history) > 0):
         
@@ -1769,17 +1776,110 @@ with tab6:
                 # Add position to history
                 st.session_state.driver_position_history[driver].append(position)
                 
-                # Award development points based on position
-                if position <= 3:
-                    dev_points = 3
-                elif position <= 8:
-                    dev_points = 2
-                elif position <= 15:
-                    dev_points = 1
-                else:
-                    dev_points = 0
+                # Calculate rolling average (last 3-5 races)
+                recent_positions = st.session_state.driver_position_history[driver][-5:]
+                st.session_state.driver_rolling_average[driver] = sum(recent_positions) / len(recent_positions)
                 
-                st.session_state.driver_development_points[driver] += dev_points
+                dev_points_earned = 0
+                
+                # Only award improvement points if we have previous race data
+                if len(st.session_state.driver_position_history[driver]) > 1:
+                    baseline = st.session_state.driver_rolling_average[driver]
+                    
+                    # Calculate position improvement
+                    improvement = baseline - position  # Positive = better position
+                    
+                    # Award base improvement points
+                    if improvement >= 11:
+                        base_points = 4
+                    elif improvement >= 6:
+                        base_points = 3
+                    elif improvement >= 3:
+                        base_points = 2
+                    elif improvement >= 1:
+                        base_points = 1
+                    elif abs(improvement) <= 2:  # Consistency reward
+                        base_points = 1
+                        st.session_state.driver_improvement_streak[driver] = 0  # Reset streak for consistency
+                    else:
+                        base_points = 0
+                        st.session_state.driver_improvement_streak[driver] = 0  # Reset streak for poor performance
+                    
+                    # Update improvement streak
+                    if improvement >= 1:
+                        st.session_state.driver_improvement_streak[driver] += 1
+                    
+                    # Apply streak multipliers
+                    streak = st.session_state.driver_improvement_streak[driver]
+                    if streak >= 4:
+                        multiplier = 2.0
+                    elif streak >= 3:
+                        multiplier = 1.5
+                    elif streak >= 2:
+                        multiplier = 1.2
+                    else:
+                        multiplier = 1.0
+                    
+                    # Apply career stage scaling
+                    current_dev_points = st.session_state.driver_development_points[driver]
+                    if current_dev_points >= 36:
+                        scaling = 0.6  # Veteran
+                    elif current_dev_points >= 16:
+                        scaling = 0.8  # Developing
+                    else:
+                        scaling = 1.0  # Early career
+                    
+                    # Calculate final points
+                    dev_points_earned = int(base_points * multiplier * scaling)
+                
+                # Check for breakthrough achievements
+                achievements = st.session_state.driver_career_achievements[driver]
+                breakthrough_points = 0
+                
+                if position == 1 and "first_win" not in achievements:
+                    breakthrough_points += 20
+                    achievements.append("first_win")
+                elif position <= 3 and "first_podium" not in achievements:
+                    breakthrough_points += 12
+                    achievements.append("first_podium")
+                elif position <= 5 and "first_top5" not in achievements:
+                    breakthrough_points += 8
+                    achievements.append("first_top5")
+                elif position <= 10 and "first_top10" not in achievements:
+                    breakthrough_points += 5
+                    achievements.append("first_top10")
+                
+                # Add special bonuses
+                special_points = 0
+                
+                # Giant Killer bonus (beat higher development teammate)
+                for other_driver_info in drivers:
+                    other_driver = other_driver_info['driver']
+                    if (other_driver != driver and 
+                        other_driver_info['team'] == team and
+                        st.session_state.driver_development_points[other_driver] > st.session_state.driver_development_points[driver]):
+                        
+                        # Find teammate's position
+                        for other_pos, other_driver_name, _ in race_results:
+                            if other_driver_name == other_driver and position < other_pos:
+                                special_points += 3
+                                break
+                
+                # Underdog victory bonus (beat higher headstart drivers)
+                driver_headstart = st.session_state.driver_headstarts.get(driver, 1)
+                beaten_higher_headstart = 0
+                for other_pos, other_driver_name, _ in race_results:
+                    if other_pos > position:
+                        other_headstart = st.session_state.driver_headstarts.get(other_driver_name, 1)
+                        if other_headstart > driver_headstart:
+                            beaten_higher_headstart += 1
+                
+                if beaten_higher_headstart >= 3:
+                    special_points += 2
+                
+                # Total development points for this race
+                total_points = dev_points_earned + breakthrough_points + special_points
+                st.session_state.driver_development_points[driver] += total_points
             
             # Mark this race as processed
             st.session_state.processed_dev_races.add(race_number)
@@ -1789,13 +1889,16 @@ with tab6:
             driver = driver_info['driver']
             dev_points = st.session_state.driver_development_points[driver]
             
-            if dev_points >= 23:
+            if dev_points >= 50:
+                level = 5
+                bonus = 4
+            elif dev_points >= 35:
                 level = 4
                 bonus = 3
-            elif dev_points >= 18:
+            elif dev_points >= 20:
                 level = 3
                 bonus = 2
-            elif dev_points >= 11:
+            elif dev_points >= 10:
                 level = 2
                 bonus = 1
             else:
@@ -1825,8 +1928,10 @@ with tab6:
             team = next(d['team'] for d in drivers if d['driver'] == driver)
             level = st.session_state.development_levels[driver]
             bonus = st.session_state.development_bonuses[driver]
+            streak = st.session_state.driver_improvement_streak[driver]
             races_participated = len(st.session_state.driver_position_history[driver])
             avg_dev_per_race = dev_points / races_participated if races_participated > 0 else 0
+            rolling_avg = st.session_state.driver_rolling_average[driver]
             
             card_class = "rating-card-gold" if pos == 1 else "rating-card-silver" if pos == 2 else "rating-card-bronze"
             medal = "🥇" if pos == 1 else "🥈" if pos == 2 else "🥉"
@@ -1834,6 +1939,7 @@ with tab6:
             
             col = dev_col1 if pos == 1 else dev_col2 if pos == 2 else dev_col3
             with col:
+                streak_indicator = f"🔥{streak}" if streak > 0 else "📊"
                 st.markdown(f'''
                 <div class="rating-card {card_class}">
                     <div class="rating-header">
@@ -1845,8 +1951,8 @@ with tab6:
                     </div>
                     <div class="rating-details">
                         <span>Level {level} • +{bonus}% Bonus</span>
-                        <span>📊 {avg_dev_per_race:.1f} avg/race</span>
-                        <span>🏁 {races_participated} races</span>
+                        <span>{streak_indicator} Streak | Avg P{rolling_avg:.1f}</span>
+                        <span>📊 {avg_dev_per_race:.1f} dev/race</span>
                     </div>
                 </div>
                 ''', unsafe_allow_html=True)
@@ -1854,7 +1960,7 @@ with tab6:
         st.markdown("---")
         
         # Development progression chart
-        st.markdown("#### 📈 Development Progression")
+        st.markdown("#### 📈 Development Progression & Performance Trends")
         
         if sorted_dev_standings:
             dev_chart_data = []
@@ -1862,6 +1968,8 @@ with tab6:
                 team = next(d['team'] for d in drivers if d['driver'] == driver)
                 level = st.session_state.development_levels[driver]
                 bonus = st.session_state.development_bonuses[driver]
+                streak = st.session_state.driver_improvement_streak[driver]
+                avg_pos = st.session_state.driver_rolling_average[driver]
                 
                 dev_chart_data.append({
                     "Driver": f"L{level} {driver}",
@@ -1869,6 +1977,8 @@ with tab6:
                     "Team": team,
                     "Level": level,
                     "Bonus": bonus,
+                    "Streak": streak,
+                    "Avg_Position": avg_pos,
                     "Full_Name": f"{driver} ({team})"
                 })
             
@@ -1884,7 +1994,14 @@ with tab6:
                     text="Development_Points",
                     color_discrete_map=team_colors,
                     orientation='h',
-                    title="Driver Development Progression"
+                    title="Driver Development Progression - Position Improvement Based",
+                    hover_data={
+                        'Level': True,
+                        'Bonus': True,
+                        'Streak': True,
+                        'Avg_Position': ':.1f',
+                        'Team': True
+                    }
                 )
                 
                 fig.update_traces(
@@ -1892,7 +2009,16 @@ with tab6:
                     texttemplate="%{text} pts",
                     marker_line_width=2,
                     marker_line_color="rgba(0,0,0,0.3)",
-                    textfont=dict(size=11, color="black")
+                    textfont=dict(size=11, color="black"),
+                    hovertemplate="%{customdata[4]}<br>" +
+                                  "Dev Points: %{x}<br>" +
+                                  "Team: %{customdata[4]}<br>" +
+                                  "Level: %{customdata[0]}<br>" +
+                                  "Bonus: +%{customdata[1]}%<br>" +
+                                  "Streak: %{customdata[2]} races<br>" +
+                                  "Avg Position: P%{customdata[3]}<br>" +
+                                  "<extra></extra>",
+                    customdata=dev_df_chart[['Level', 'Bonus', 'Streak', 'Avg_Position', 'Full_Name']].values
                 )
                 
                 fig.update_layout(
@@ -1900,7 +2026,7 @@ with tab6:
                     xaxis_title="Development Points",
                     yaxis_title="",
                     title={
-                        'text': "Driver Development Progression",
+                        'text': "Driver Development Progression - Position Improvement Based",
                         'x': 0.5,
                         'xanchor': 'center',
                         'font': {'size': 18, 'color': '#2c3e50'}
@@ -1923,275 +2049,174 @@ with tab6:
         
         st.markdown("---")
         
-        # Development levels breakdown
-        st.markdown("#### 🎯 Development Levels Breakdown")
+        # Development levels breakdown with enhanced info
+        st.markdown("#### 🎯 Development Levels & Career Stages")
         
-        level_breakdown = {1: [], 2: [], 3: [], 4: []}
+        level_breakdown = {1: [], 2: [], 3: [], 4: [], 5: []}
         for driver, level in st.session_state.development_levels.items():
             level_breakdown[level].append(driver)
         
-        level_col1, level_col2, level_col3, level_col4 = st.columns(4)
+        level_col1, level_col2, level_col3, level_col4, level_col5 = st.columns(5)
         
-        # Level 1 - Rookie
-        with level_col1:
-            st.markdown(f'''
-            <div class="rating-card" style="background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%); color: #000000;">
-                <div class="rating-header">
-                    <div>
-                        <div class="driver-name">🌱 Level 1 - Rookie</div>
-                        <div class="team-name">0-10 Development Points</div>
-                    </div>
-                    <div class="rating-score">{len(level_breakdown[1])}</div>
-                </div>
-                <div class="rating-details">
-                    <span>No Bonus</span>
-                    <span>Base Performance</span>
-                </div>
-            </div>
-            ''', unsafe_allow_html=True)
-            
-            if level_breakdown[1]:
-                st.markdown('<div class="leaderboard" style="max-height: 200px; overflow-y: auto;">', unsafe_allow_html=True)
-                # Sort drivers in this level by development points (descending)
-                level_1_drivers = [(driver, st.session_state.driver_development_points[driver]) for driver in level_breakdown[1]]
-                level_1_drivers.sort(key=lambda x: x[1], reverse=True)
-                
-                for driver, dev_points in level_1_drivers:
-                    team = next(d['team'] for d in drivers if d['driver'] == driver)
-                    st.markdown(f'''
-                    <div class="leaderboard-item">
-                        <span>{driver} ({team})</span>
-                        <span>{dev_points} pts</span>
-                    </div>
-                    ''', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+        level_configs = [
+            (1, level_col1, "🌱 Level 1 - Rookie", "0-9 Development Points", "No Bonus", "linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%)"),
+            (2, level_col2, "📈 Level 2 - Developing", "10-19 Development Points", "+1% Bonus", "linear-gradient(135deg, #3498db 0%, #2980b9 100%)"),
+            (3, level_col3, "⭐ Level 3 - Experienced", "20-34 Development Points", "+2% Bonus", "linear-gradient(135deg, #f39c12 0%, #e67e22 100%)"),
+            (4, level_col4, "🏆 Level 4 - Elite", "35-49 Development Points", "+3% Bonus", "linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)"),
+            (5, level_col5, "👑 Level 5 - Legend", "50+ Development Points", "+4% Bonus", "linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)")
+        ]
         
-        # Level 2 - Developing
-        with level_col2:
-            st.markdown(f'''
-            <div class="rating-card" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: #000000;">
-                <div class="rating-header">
-                    <div>
-                        <div class="driver-name">📈 Level 2 - Developing</div>
-                        <div class="team-name">11-17 Development Points</div>
+        for level_num, col, title, points_range, bonus_text, gradient in level_configs:
+            with col:
+                st.markdown(f'''
+                <div class="rating-card" style="background: {gradient}; color: #000000;">
+                    <div class="rating-header">
+                        <div>
+                            <div class="driver-name">{title}</div>
+                            <div class="team-name">{points_range}</div>
+                        </div>
+                        <div class="rating-score">{len(level_breakdown[level_num])}</div>
                     </div>
-                    <div class="rating-score">{len(level_breakdown[2])}</div>
+                    <div class="rating-details">
+                        <span>{bonus_text}</span>
+                        <span>Career Stage</span>
+                    </div>
                 </div>
-                <div class="rating-details">
-                    <span>+1% Bonus</span>
-                    <span>Improving Performance</span>
-                </div>
-            </div>
-            ''', unsafe_allow_html=True)
-            
-            if level_breakdown[2]:
-                st.markdown('<div class="leaderboard" style="max-height: 200px; overflow-y: auto;">', unsafe_allow_html=True)
-                # Sort drivers in this level by development points (descending)
-                level_2_drivers = [(driver, st.session_state.driver_development_points[driver]) for driver in level_breakdown[2]]
-                level_2_drivers.sort(key=lambda x: x[1], reverse=True)
+                ''', unsafe_allow_html=True)
                 
-                for driver, dev_points in level_2_drivers:
-                    team = next(d['team'] for d in drivers if d['driver'] == driver)
-                    st.markdown(f'''
-                    <div class="leaderboard-item">
-                        <span>{driver} ({team})</span>
-                        <span>{dev_points} pts</span>
-                    </div>
-                    ''', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Level 3 - Experienced
-        with level_col3:
-            st.markdown(f'''
-            <div class="rating-card" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: #000000;">
-                <div class="rating-header">
-                    <div>
-                        <div class="driver-name">⭐ Level 3 - Experienced</div>
-                        <div class="team-name">18-22 Development Points</div>
-                    </div>
-                    <div class="rating-score">{len(level_breakdown[3])}</div>
-                </div>
-                <div class="rating-details">
-                    <span>+2% Bonus</span>
-                    <span>Strong Performance</span>
-                </div>
-            </div>
-            ''', unsafe_allow_html=True)
-            
-            if level_breakdown[3]:
-                st.markdown('<div class="leaderboard" style="max-height: 200px; overflow-y: auto;">', unsafe_allow_html=True)
-                # Sort drivers in this level by development points (descending)
-                level_3_drivers = [(driver, st.session_state.driver_development_points[driver]) for driver in level_breakdown[3]]
-                level_3_drivers.sort(key=lambda x: x[1], reverse=True)
-                
-                for driver, dev_points in level_3_drivers:
-                    team = next(d['team'] for d in drivers if d['driver'] == driver)
-                    st.markdown(f'''
-                    <div class="leaderboard-item">
-                        <span>{driver} ({team})</span>
-                        <span>{dev_points} pts</span>
-                    </div>
-                    ''', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Level 4 - Elite
-        with level_col4:
-            st.markdown(f'''
-            <div class="rating-card" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: #000000;">
-                <div class="rating-header">
-                    <div>
-                        <div class="driver-name">🏆 Level 4 - Elite</div>
-                        <div class="team-name">23+ Development Points</div>
-                    </div>
-                    <div class="rating-score">{len(level_breakdown[4])}</div>
-                </div>
-                <div class="rating-details">
-                    <span>+3% Bonus</span>
-                    <span>Elite Performance</span>
-                </div>
-            </div>
-            ''', unsafe_allow_html=True)
-            
-            if level_breakdown[4]:
-                st.markdown('<div class="leaderboard" style="max-height: 200px; overflow-y: auto;">', unsafe_allow_html=True)
-                # Sort drivers in this level by development points (descending)
-                level_4_drivers = [(driver, st.session_state.driver_development_points[driver]) for driver in level_breakdown[4]]
-                level_4_drivers.sort(key=lambda x: x[1], reverse=True)
-                
-                for driver, dev_points in level_4_drivers:
-                    team = next(d['team'] for d in drivers if d['driver'] == driver)
-                    st.markdown(f'''
-                    <div class="leaderboard-item">
-                        <span>{driver} ({team})</span>
-                        <span>{dev_points} pts</span>
-                    </div>
-                    ''', unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
+                if level_breakdown[level_num]:
+                    st.markdown('<div class="leaderboard" style="max-height: 150px; overflow-y: auto;">', unsafe_allow_html=True)
+                    level_drivers = [(driver, st.session_state.driver_development_points[driver], st.session_state.driver_improvement_streak[driver]) for driver in level_breakdown[level_num]]
+                    level_drivers.sort(key=lambda x: x[1], reverse=True)
+                    
+                    for driver, dev_points, streak in level_drivers:
+                        team = next(d['team'] for d in drivers if d['driver'] == driver)
+                        streak_icon = f"🔥{streak}" if streak > 0 else "📊"
+                        st.markdown(f'''
+                        <div class="leaderboard-item">
+                            <span>{driver} ({team})</span>
+                            <span>{dev_points}pts {streak_icon}</span>
+                        </div>
+                        ''', unsafe_allow_html=True)
+                    st.markdown('</div>', unsafe_allow_html=True)
         
         st.markdown("---")
         
-        # Position performance analysis
-        st.markdown("#### 📊 Position Performance Analysis")
+        # Enhanced performance analysis
+        st.markdown("#### 📊 Enhanced Performance Analysis")
         
-        if sorted_dev_standings:
-            analysis_col1, analysis_col2 = st.columns(2)
+        analysis_col1, analysis_col2 = st.columns(2)
+        
+        with analysis_col1:
+            st.markdown("##### 🔥 Hot Streaks & Momentum")
             
-            with analysis_col1:
-                st.markdown("##### 🎯 Best Developers by Category")
-                
-                # Top podium finisher developer
-                podium_developers = []
-                for driver, positions in st.session_state.driver_position_history.items():
-                    podium_count = len([p for p in positions if p <= 3])
-                    if podium_count > 0:
-                        podium_developers.append((driver, podium_count, st.session_state.driver_development_points[driver]))
-                
-                if podium_developers:
-                    best_podium_dev = max(podium_developers, key=lambda x: x[1])
-                    team = next(d['team'] for d in drivers if d['driver'] == best_podium_dev[0])
-                    st.markdown(f'''
-                    <div class="rating-card" style="background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000000;">
-                        <div class="rating-header">
-                            <div>
-                                <div class="driver-name">🥇 Podium Master</div>
-                                <div class="team-name">{best_podium_dev[0]} ({team})</div>
-                            </div>
-                            <div class="rating-score">{best_podium_dev[1]}</div>
+            # Best improvement streak
+            best_streak = max(st.session_state.driver_improvement_streak.items(), key=lambda x: x[1])
+            if best_streak[1] > 0:
+                team = next(d['team'] for d in drivers if d['driver'] == best_streak[0])
+                dev_points = st.session_state.driver_development_points[best_streak[0]]
+                st.markdown(f'''
+                <div class="rating-card" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%); color: #000000;">
+                    <div class="rating-header">
+                        <div>
+                            <div class="driver-name">🔥 Hottest Streak</div>
+                            <div class="team-name">{best_streak[0]} ({team})</div>
                         </div>
-                        <div class="rating-details">
-                            <span>Podium Finishes</span>
-                            <span>{best_podium_dev[2]} Dev Points</span>
-                        </div>
+                        <div class="rating-score">{best_streak[1]}</div>
                     </div>
-                    ''', unsafe_allow_html=True)
-                
-                # Most consistent developer
-                consistent_developers = []
-                for driver, positions in st.session_state.driver_position_history.items():
-                    if len(positions) > 0:
-                        avg_position = sum(positions) / len(positions)
-                        dev_points = st.session_state.driver_development_points[driver]
-                        if dev_points > 5:  # Only consider drivers with some development
-                            consistent_developers.append((driver, avg_position, dev_points))
-                
-                if consistent_developers:
-                    best_consistent_dev = min(consistent_developers, key=lambda x: x[1])
-                    team = next(d['team'] for d in drivers if d['driver'] == best_consistent_dev[0])
-                    st.markdown(f'''
-                    <div class="rating-card" style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: #000000;">
-                        <div class="rating-header">
-                            <div>
-                                <div class="driver-name">🎯 Most Consistent</div>
-                                <div class="team-name">{best_consistent_dev[0]} ({team})</div>
-                            </div>
-                            <div class="rating-score">{best_consistent_dev[1]:.1f}</div>
-                        </div>
-                        <div class="rating-details">
-                            <span>Avg Position</span>
-                            <span>{best_consistent_dev[2]} Dev Points</span>
-                        </div>
+                    <div class="rating-details">
+                        <span>Consecutive Improvements</span>
+                        <span>{dev_points} Dev Points</span>
                     </div>
-                    ''', unsafe_allow_html=True)
+                </div>
+                ''', unsafe_allow_html=True)
             
-            with analysis_col2:
-                # Development efficiency
-                st.markdown("##### ⚡ Development Efficiency")
-                
-                efficiency_developers = []
-                for driver, positions in st.session_state.driver_position_history.items():
-                    if len(positions) > 0:
-                        dev_points = st.session_state.driver_development_points[driver]
-                        efficiency = dev_points / len(positions)
-                        efficiency_developers.append((driver, efficiency, dev_points, len(positions)))
-                
-                if efficiency_developers:
-                    most_efficient_dev = max(efficiency_developers, key=lambda x: x[1])
-                    team = next(d['team'] for d in drivers if d['driver'] == most_efficient_dev[0])
-                    st.markdown(f'''
-                    <div class="rating-card" style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); color: #000000;">
-                        <div class="rating-header">
-                            <div>
-                                <div class="driver-name">⚡ Most Efficient</div>
-                                <div class="team-name">{most_efficient_dev[0]} ({team})</div>
-                            </div>
-                            <div class="rating-score">{most_efficient_dev[1]:.1f}</div>
+            # Most consistent performer
+            consistent_performers = []
+            for driver, positions in st.session_state.driver_position_history.items():
+                if len(positions) >= 3:
+                    position_variance = sum((p - st.session_state.driver_rolling_average[driver])**2 for p in positions[-5:]) / len(positions[-5:])
+                    consistent_performers.append((driver, position_variance, st.session_state.driver_development_points[driver]))
+            
+            if consistent_performers:
+                most_consistent = min(consistent_performers, key=lambda x: x[1])
+                team = next(d['team'] for d in drivers if d['driver'] == most_consistent[0])
+                st.markdown(f'''
+                <div class="rating-card" style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: #000000;">
+                    <div class="rating-header">
+                        <div>
+                            <div class="driver-name">🎯 Most Consistent</div>
+                            <div class="team-name">{most_consistent[0]} ({team})</div>
                         </div>
-                        <div class="rating-details">
-                            <span>Dev Points/Race</span>
-                            <span>{most_efficient_dev[2]} total pts</span>
-                        </div>
+                        <div class="rating-score">{most_consistent[1]:.1f}</div>
                     </div>
-                    ''', unsafe_allow_html=True)
-                
-                # Fastest improver
-                if len(st.session_state.complete_race_history) >= 3:
-                    recent_improvers = []
-                    for driver, positions in st.session_state.driver_position_history.items():
-                        if len(positions) >= 3:
-                            early_avg = sum(positions[:len(positions)//2]) / (len(positions)//2)
-                            late_avg = sum(positions[len(positions)//2:]) / (len(positions) - len(positions)//2)
-                            improvement = early_avg - late_avg  # Lower position is better
-                            if improvement > 0:
-                                recent_improvers.append((driver, improvement, st.session_state.driver_development_points[driver]))
-                    
-                    if recent_improvers:
-                        fastest_improver = max(recent_improvers, key=lambda x: x[1])
-                        team = next(d['team'] for d in drivers if d['driver'] == fastest_improver[0])
-                        st.markdown(f'''
-                        <div class="rating-card" style="background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); color: #000000;">
-                            <div class="rating-header">
-                                <div>
-                                    <div class="driver-name">📈 Fastest Improver</div>
-                                    <div class="team-name">{fastest_improver[0]} ({team})</div>
-                                </div>
-                                <div class="rating-score">+{fastest_improver[1]:.1f}</div>
-                            </div>
-                            <div class="rating-details">
-                                <span>Position Improvement</span>
-                                <span>{fastest_improver[2]} Dev Points</span>
-                            </div>
+                    <div class="rating-details">
+                        <span>Low Variance Score</span>
+                        <span>{most_consistent[2]} Dev Points</span>
+                    </div>
+                </div>
+                ''', unsafe_allow_html=True)
+        
+        with analysis_col2:
+            st.markdown("##### 🏆 Achievement Hunters")
+            
+            # Most breakthrough achievements
+            achievement_leaders = []
+            for driver, achievements in st.session_state.driver_career_achievements.items():
+                if achievements:
+                    achievement_leaders.append((driver, len(achievements), st.session_state.driver_development_points[driver]))
+            
+            if achievement_leaders:
+                top_achiever = max(achievement_leaders, key=lambda x: x[1])
+                team = next(d['team'] for d in drivers if d['driver'] == top_achiever[0])
+                achievements_list = st.session_state.driver_career_achievements[top_achiever[0]]
+                st.markdown(f'''
+                <div class="rating-card" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: #000000;">
+                    <div class="rating-header">
+                        <div>
+                            <div class="driver-name">🏆 Achievement Hunter</div>
+                            <div class="team-name">{top_achiever[0]} ({team})</div>
                         </div>
-                        ''', unsafe_allow_html=True)
+                        <div class="rating-score">{top_achiever[1]}</div>
+                    </div>
+                    <div class="rating-details">
+                        <span>Breakthrough Achievements</span>
+                        <span>{', '.join(achievements_list[:2])}</span>
+                    </div>
+                </div>
+                ''', unsafe_allow_html=True)
+            
+            # Best improver (highest average position improvement)
+            improvers = []
+            for driver, positions in st.session_state.driver_position_history.items():
+                if len(positions) >= 3:
+                    early_races = positions[:len(positions)//2] if len(positions) >= 4 else positions[:2]
+                    late_races = positions[len(positions)//2:] if len(positions) >= 4 else positions[2:]
+                    if early_races and late_races:
+                        early_avg = sum(early_races) / len(early_races)
+                        late_avg = sum(late_races) / len(late_races)
+                        improvement = early_avg - late_avg  # Positive = better recent positions
+                        if improvement > 0:
+                            improvers.append((driver, improvement, st.session_state.driver_development_points[driver]))
+            
+            if improvers:
+                best_improver = max(improvers, key=lambda x: x[1])
+                team = next(d['team'] for d in drivers if d['driver'] == best_improver[0])
+                st.markdown(f'''
+                <div class="rating-card" style="background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); color: #000000;">
+                    <div class="rating-header">
+                        <div>
+                            <div class="driver-name">📈 Best Improver</div>
+                            <div class="team-name">{best_improver[0]} ({team})</div>
+                        </div>
+                        <div class="rating-score">+{best_improver[1]:.1f}</div>
+                    </div>
+                    <div class="rating-details">
+                        <span>Average Position Gain</span>
+                        <span>{best_improver[2]} Dev Points</span>
+                    </div>
+                </div>
+                ''', unsafe_allow_html=True)
         
         st.markdown("---")
         
@@ -2203,23 +2228,27 @@ with tab6:
             team = next(d['team'] for d in drivers if d['driver'] == driver)
             level = st.session_state.development_levels[driver]
             bonus = st.session_state.development_bonuses[driver]
+            streak = st.session_state.driver_improvement_streak[driver]
             races = len(st.session_state.driver_position_history[driver])
             efficiency = dev_points / races if races > 0 else 0
+            avg_pos = st.session_state.driver_rolling_average[driver]
             
             card_class = "position-1" if pos == 1 else "position-2" if pos == 2 else "position-3" if pos == 3 else ""
-            level_icon = "🌱" if level == 1 else "📈" if level == 2 else "⭐" if level == 3 else "🏆"
+            level_icon = "🌱" if level == 1 else "📈" if level == 2 else "⭐" if level == 3 else "🏆" if level == 4 else "👑"
+            streak_indicator = f"🔥{streak}" if streak > 0 else "📊"
             
             st.markdown(f'''
             <div class="leaderboard-item {card_class}">
-                <div style="display: flex; align-items: center; min-width: 300px;">
+                <div style="display: flex; align-items: center; min-width: 350px;">
                     <span style="margin-right: 10px; font-weight: bold;">P{pos}</span>
                     <div>
                         <div style="font-weight: bold; color: #000000;">{level_icon} L{level} {driver}</div>
-                        <div style="font-size: 12px; color: #000000; opacity: 0.7;">{team} • +{bonus}% Bonus</div>
+                        <div style="font-size: 12px; color: #000000; opacity: 0.7;">{team} • +{bonus}% Bonus • Avg P{avg_pos:.1f}</div>
                     </div>
                 </div>
                 <div style="display: flex; gap: 15px; align-items: center;">
                     <span style="font-weight: bold; color: #000000;">{dev_points} dev pts</span>
+                    <span style="font-size: 12px; color: #000000;">{streak_indicator}</span>
                     <span style="font-size: 12px; color: #000000;">📊{efficiency:.1f}/race</span>
                     <span style="font-size: 12px; color: #000000;">🏁{races} races</span>
                 </div>
@@ -2231,124 +2260,12 @@ with tab6:
         st.markdown("---")
         st.markdown("#### 🚀 Apply Development Bonuses")
         
-        bonus_col1, bonus_col2 = st.columns(2)
+        # bonus_col1, bonus_col2 = st.columns(2)
         
-        with bonus_col1:
-            if st.button("⚡ Apply All Development Bonuses", use_container_width=True, type="primary"):
-                for driver_info in drivers:
-                    driver = driver_info['driver']
-                    base_headstart = st.session_state.driver_headstarts.get(driver, 1)
-                    dev_bonus = st.session_state.development_bonuses.get(driver, 0)
-                    new_headstart = min(9, base_headstart + dev_bonus)  # Cap at 9%
-                    st.session_state.driver_headstarts[driver] = new_headstart
-                
-                st.success("Development bonuses applied to all drivers!")
-                st.rerun()
-        
-        with bonus_col2:
-            if st.button("🔄 Reset All Development", use_container_width=True):
-                st.session_state.driver_development_points = {driver['driver']: 0 for driver in drivers}
-                st.session_state.driver_position_history = {driver['driver']: [] for driver in drivers}
-                st.session_state.development_levels = {driver['driver']: 1 for driver in drivers}
-                st.session_state.development_bonuses = {driver['driver']: 0 for driver in drivers}
-                st.session_state.processed_dev_races = set()  # Clear processed races tracking
-                
-                st.success("All development progress reset!")
-                st.rerun()
-        
-        # Development bonus preview
-        st.markdown("---")
-        st.markdown("#### 👀 Development Bonus Preview")
-        
-        preview_data = []
-        total_bonuses_to_apply = 0
-        
-        for driver_info in drivers:
-            driver = driver_info['driver']
-            current_headstart = st.session_state.driver_headstarts.get(driver, 1)
-            dev_bonus = st.session_state.development_bonuses.get(driver, 0)
-            level = st.session_state.development_levels.get(driver, 1)
-            new_headstart = min(9, current_headstart + dev_bonus)
-            
-            if dev_bonus > 0:
-                total_bonuses_to_apply += dev_bonus
-                preview_data.append({
-                    'driver': driver,
-                    'team': next(d['team'] for d in drivers if d['driver'] == driver),
-                    'current': current_headstart,
-                    'bonus': dev_bonus,
-                    'new': new_headstart,
-                    'level': level
-                })
-        
-        if preview_data:
-            st.markdown(f"**{len(preview_data)} drivers will receive bonuses (Total: +{total_bonuses_to_apply}%)**")
-            
-            preview_col1, preview_col2 = st.columns(2)
-            
-            for i, data in enumerate(preview_data):
-                col = preview_col1 if i % 2 == 0 else preview_col2
-                with col:
-                    level_icon = "🌱" if data['level'] == 1 else "📈" if data['level'] == 2 else "⭐" if data['level'] == 3 else "🏆"
-                    
-                    st.markdown(f'''
-                    <div class="rating-card" style="background: rgba(46, 204, 113, 0.1); border: 2px solid #27ae60; color: #000000;">
-                        <div class="rating-header">
-                            <div>
-                                <div class="driver-name">{level_icon} {data['driver']}</div>
-                                <div class="team-name">{data['team']} • Level {data['level']}</div>
-                            </div>
-                            <div class="rating-score">{data['current']}% → {data['new']}%</div>
-                        </div>
-                        <div class="rating-details">
-                            <span>Current: {data['current']}%</span>
-                            <span>Bonus: +{data['bonus']}%</span>
-                        </div>
-                    </div>
-                    ''', unsafe_allow_html=True)
-        else:
-            st.info("No development bonuses available yet. Complete more races to earn development points!")
-    
-    else:
-        # No races completed yet
-        st.markdown('<div class="rating-card">', unsafe_allow_html=True)
-        st.markdown("#### 🏁 Development System Ready")
-        st.write("Complete races to start earning development points!")
-        st.write("• Drivers earn points based on finishing positions")
-        st.write("• Higher levels provide permanent bonuses")  
-        st.write("• Rewards consistent performance over time")
-        st.write("• Creates natural progression and growth")
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        # Show example development structure
-        st.markdown("---")
-        st.markdown("#### 📚 Development System Preview")
-        
-        example_col1, example_col2 = st.columns(2)
-        
-        with example_col1:
-            st.markdown("##### 🎯 How Points Are Earned")
-            st.markdown('''
-            - **P1-P3 (Podium)**: +3 Development Points
-            - **P4-P8 (Points)**: +2 Development Points  
-            - **P9-P15 (Mid-field)**: +1 Development Point
-            - **P16-P20 (Back)**: +0 Points
-            
-            *Consistent top finishes lead to faster development*
-            ''')
-        
-        with example_col2:
-            st.markdown("##### 🚀 Development Levels")
-            st.markdown('''
-            - **Level 1 (Rookie)**: 0-10 points → No bonus
-            - **Level 2 (Developing)**: 11-17 points → +1% bonus
-            - **Level 3 (Experienced)**: 18-22 points → +2% bonus
-            - **Level 4 (Elite)**: 23+ points → +3% bonus
-            
-            *Bonuses add to base headstart percentage*
-            ''')
-    
-    st.markdown('</div>', unsafe_allow_html=True)
+        # with bonus_col1:
+        #     if st.button("⚡ Apply All Development Bonuses", use_container_width=True, type="primary"):
+        #         for driver_info in drivers:
+        #             driver = driver_info['driver']
 
 # Tab 7: Season Summary - Enhanced with More Awards
 with tab7:
