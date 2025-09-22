@@ -1952,9 +1952,12 @@ with tab6:
             
             if level_breakdown[1]:
                 st.markdown('<div class="leaderboard" style="max-height: 200px; overflow-y: auto;">', unsafe_allow_html=True)
-                for driver in level_breakdown[1]:
+                # Sort drivers in this level by development points (descending)
+                level_1_drivers = [(driver, st.session_state.driver_development_points[driver]) for driver in level_breakdown[1]]
+                level_1_drivers.sort(key=lambda x: x[1], reverse=True)
+                
+                for driver, dev_points in level_1_drivers:
                     team = next(d['team'] for d in drivers if d['driver'] == driver)
-                    dev_points = st.session_state.driver_development_points[driver]
                     st.markdown(f'''
                     <div class="leaderboard-item">
                         <span>{driver} ({team})</span>
@@ -1983,9 +1986,12 @@ with tab6:
             
             if level_breakdown[2]:
                 st.markdown('<div class="leaderboard" style="max-height: 200px; overflow-y: auto;">', unsafe_allow_html=True)
-                for driver in level_breakdown[2]:
+                # Sort drivers in this level by development points (descending)
+                level_2_drivers = [(driver, st.session_state.driver_development_points[driver]) for driver in level_breakdown[2]]
+                level_2_drivers.sort(key=lambda x: x[1], reverse=True)
+                
+                for driver, dev_points in level_2_drivers:
                     team = next(d['team'] for d in drivers if d['driver'] == driver)
-                    dev_points = st.session_state.driver_development_points[driver]
                     st.markdown(f'''
                     <div class="leaderboard-item">
                         <span>{driver} ({team})</span>
@@ -2014,9 +2020,12 @@ with tab6:
             
             if level_breakdown[3]:
                 st.markdown('<div class="leaderboard" style="max-height: 200px; overflow-y: auto;">', unsafe_allow_html=True)
-                for driver in level_breakdown[3]:
+                # Sort drivers in this level by development points (descending)
+                level_3_drivers = [(driver, st.session_state.driver_development_points[driver]) for driver in level_breakdown[3]]
+                level_3_drivers.sort(key=lambda x: x[1], reverse=True)
+                
+                for driver, dev_points in level_3_drivers:
                     team = next(d['team'] for d in drivers if d['driver'] == driver)
-                    dev_points = st.session_state.driver_development_points[driver]
                     st.markdown(f'''
                     <div class="leaderboard-item">
                         <span>{driver} ({team})</span>
@@ -2045,9 +2054,12 @@ with tab6:
             
             if level_breakdown[4]:
                 st.markdown('<div class="leaderboard" style="max-height: 200px; overflow-y: auto;">', unsafe_allow_html=True)
-                for driver in level_breakdown[4]:
+                # Sort drivers in this level by development points (descending)
+                level_4_drivers = [(driver, st.session_state.driver_development_points[driver]) for driver in level_breakdown[4]]
+                level_4_drivers.sort(key=lambda x: x[1], reverse=True)
+                
+                for driver, dev_points in level_4_drivers:
                     team = next(d['team'] for d in drivers if d['driver'] == driver)
-                    dev_points = st.session_state.driver_development_points[driver]
                     st.markdown(f'''
                     <div class="leaderboard-item">
                         <span>{driver} ({team})</span>
