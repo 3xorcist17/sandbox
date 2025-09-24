@@ -1822,7 +1822,7 @@ with tab6:
                     
                     # Apply career stage scaling - MUCH STRICTER SCALING
                     current_dev_points = st.session_state.driver_development_points[driver]
-                    if current_dev_points >= 80:
+                    if current_dev_points >= 70:
                         scaling = 0.3  # Legend - very hard to improve
                     elif current_dev_points >= 50:
                         scaling = 0.4  # Elite - hard to improve
@@ -1893,16 +1893,16 @@ with tab6:
             driver = driver_info['driver']
             dev_points = st.session_state.driver_development_points[driver]
             
-            if dev_points >= 120:
+            if dev_points >= 70:
                 level = 5
                 bonus = 4
-            elif dev_points >= 80:
+            elif dev_points >= 55:
                 level = 4
                 bonus = 3
-            elif dev_points >= 50:
+            elif dev_points >= 35:
                 level = 3
                 bonus = 2
-            elif dev_points >= 25:
+            elif dev_points >= 18:
                 level = 2
                 bonus = 1
             else:
@@ -2063,9 +2063,9 @@ with tab6:
         level_col1, level_col2, level_col3, level_col4, level_col5 = st.columns(5)
         
         level_configs = [
-            (1, level_col1, "🌱 Level 1 - Rookie", "0-24 Development Points", "No Bonus", "linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%)"),
-            (2, level_col2, "📈 Level 2 - Developing", "25-49 Development Points", "+1% Bonus", "linear-gradient(135deg, #3498db 0%, #2980b9 100%)"),
-            (3, level_col3, "⭐ Level 3 - Experienced", "50-79 Development Points", "+2% Bonus", "linear-gradient(135deg, #f39c12 0%, #e67e22 100%)"),
+            (1, level_col1, "🌱 Level 1 - Rookie", "0-18 Development Points", "No Bonus", "linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%)"),
+            (2, level_col2, "📈 Level 2 - Developing", "19-35 Development Points", "+1% Bonus", "linear-gradient(135deg, #3498db 0%, #2980b9 100%)"),
+            (3, level_col3, "⭐ Level 3 - Experienced", "50-70 Development Points", "+2% Bonus", "linear-gradient(135deg, #f39c12 0%, #e67e22 100%)"),
             (4, level_col4, "🏆 Level 4 - Elite", "80-119 Development Points", "+3% Bonus", "linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)"),
             (5, level_col5, "👑 Level 5 - Legend", "120+ Development Points", "+4% Bonus", "linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%)")
         ]
