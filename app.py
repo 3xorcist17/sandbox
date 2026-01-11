@@ -253,13 +253,13 @@ st.markdown("""
 teams_drivers = {
     "Alpine": ["Gas", "Doo"],
     "Aston Martin": ["Alo", "Str"],
+    "Audi": ["Hul", "Bor"],
     "Ferrari": ["Lec", "Ham"],
     "Haas": ["Oco", "Bea"],
     "McLaren": ["Nor", "Pia"],
     "Mercedes": ["Rus", "Ant"],
-    "Racing Bulls": ["Had", "Law"],
-    "Red Bull": ["Ver", "Tsu"],
-    "Sauber": ["Hul", "Bor"],
+    "Racing Bulls": ["Lin", "Law"],
+    "Red Bull": ["Ver", "Had"],
     "Williams": ["Sai", "Alb"]
 }
 
@@ -267,13 +267,13 @@ teams_drivers = {
 team_colors = {
     "Alpine": "hsl(308, 100%, 34.4%)",
     "Aston Martin": "hsl(185, 99.6%, 31.7%)",
+    "Audi": "hsl(124, 99.6%, 31.4%)",
     "Ferrari": "hsl(0, 99.6%, 39.7%)",
     "Haas": "hsl(0, 99.6%, 28.2%)",
     "McLaren": "hsl(33, 99.6%, 42.4%)",
     "Mercedes": "hsl(165, 99.6%, 9.4%)",
     "Racing Bulls": "hsl(198, 99.6%, 80.3%)",
     "Red Bull": "hsl(247, 99.6%, 24.1%)",
-    "Sauber": "hsl(124, 99.6%, 31.4%)",
     "Williams": "hsl(201, 99.6%, 32.2%)"
 }
 
