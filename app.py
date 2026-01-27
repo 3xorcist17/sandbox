@@ -267,7 +267,7 @@ teams_drivers = {
 team_colors = {
     "Alpine": "hsl(308, 100%, 34.4%)",
     "Aston Martin": "hsl(185, 99.6%, 31.7%)",
-    "Audi": "hsl(124, 99.6%, 31.4%)",
+    "Audi": "hsl(30, 14%, 47%)",
     "Ferrari": "hsl(0, 99.6%, 39.7%)",
     "Haas": "hsl(0, 99.6%, 28.2%)",
     "McLaren": "hsl(33, 99.6%, 42.4%)",
