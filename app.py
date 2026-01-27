@@ -385,7 +385,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
 # Tab 1: Race & Results (with proper race storage)
 with tab1:
     if st.button("🏁 Start Race"):
-        st.session_state.progress_values = [0] * 20
+        st.session_state.progress_values = [0] * 22
         for i, driver_info in enumerate(drivers):
             driver = driver_info['driver']
             headstart = st.session_state.driver_headstarts.get(driver, 1)
