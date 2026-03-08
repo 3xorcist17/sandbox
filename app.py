@@ -17,6 +17,50 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "Season Summary"
 ])
 
+def calculate_driver_rating(driver):
+    points = st.session_state.total_driver_points[driver]
+    wins = st.session_state.driver_wins[driver]
+    podiums = st.session_state.driver_podiums[driver]
+    races = st.session_state.races_completed
+    
+    if races == 0:
+        return 5.0
+    
+    max_possible_points = races * 25
+    points_ratio = min(points / max_possible_points, 1.0) if max_possible_points > 0 else 0
+    win_ratio = wins / races if races > 0 else 0
+    podium_ratio = podiums / races if races > 0 else 0
+    
+    rating = (points_ratio * 5.0) + (win_ratio * 3.0) + (podium_ratio * 2.0)
+    return min(max(rating, 0.0), 10.0)
+
+
+def get_current_leaderboard():
+    finished_drivers = []
+    racing_drivers = []
+    
+    for driver_info in st.session_state.finish_order:
+        finished_drivers.append({
+            'driver': driver_info['driver'],
+            'team': driver_info['team'],
+            'progress': 100,
+            'finished': True
+        })
+    
+    finished_driver_names = [d['driver'] for d in st.session_state.finish_order]
+    for i, driver_info in enumerate(drivers):
+        if driver_info['driver'] not in finished_driver_names:
+            racing_drivers.append({
+                'driver': driver_info['driver'],
+                'team': driver_info['team'],
+                'progress': st.session_state.progress_values[i],
+                'finished': False,
+                'index': i
+            })
+    
+    racing_drivers.sort(key=lambda x: x['progress'], reverse=True)
+    return finished_drivers + racing_drivers
+
 # Updated CSS with grey/ash colors changed to black
 st.markdown("""
     <style>
