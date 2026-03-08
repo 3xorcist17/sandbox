@@ -1209,6 +1209,7 @@ with tab3:
     st.markdown('</div>', unsafe_allow_html=True)
 
 # Tab 4: Constructors' and Drivers' Stats
+# Tab 4: Constructors' and Drivers' Stats
 with tab4:
     st.markdown('<div class="race-container">', unsafe_allow_html=True)
     st.markdown("### 🏆 Constructor Statistics")
@@ -1223,16 +1224,109 @@ with tab4:
     )
     for pos, (team, wins) in enumerate(sorted_team_stats, 1):
         podiums = st.session_state.team_podiums[team]
-        constructor_stats_data.append({"Position": pos, "Team": team, "Wins": wins, "Podiums": podiums})
+        points = st.session_state.total_team_points[team]
+        avg = points / st.session_state.races_completed if st.session_state.races_completed > 0 else 0
+        constructor_stats_data.append({
+            "Position": pos,
+            "Team": team,
+            "Wins": wins,
+            "Podiums": podiums,
+            "Points": points
+        })
         card_class = "position-1" if pos == 1 else "position-2" if pos == 2 else "position-3" if pos == 3 else ""
+        position_icon = "🥇" if pos == 1 else "🥈" if pos == 2 else "🥉" if pos == 3 else f"P{pos}"
         st.markdown(f'''
         <div class="leaderboard-item {card_class}">
-            <span>{pos}. {team}</span>
-            <span>Wins: {wins} | Podiums: {podiums}</span>
+            <div style="display: flex; align-items: center; min-width: 200px;">
+                <span style="margin-right: 10px; font-weight: bold;">{position_icon}</span>
+                <div>
+                    <div style="font-weight: bold; color: #000000;">{team}</div>
+                    <div style="font-size: 12px; color: #000000; opacity: 0.7;">{points} pts • {avg:.1f} avg/race</div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <span style="font-size: 12px; color: #000000;">🏆 {wins} Wins</span>
+                <span style="font-size: 12px; color: #000000;">🏅 {podiums} Podiums</span>
+            </div>
         </div>
         ''', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
-    
+
+    # Constructor wins & podiums bar chart
+    if st.session_state.races_completed > 0:
+        st.markdown("---")
+        st.markdown("#### 📊 Constructor Wins & Podiums Chart")
+
+        constructor_chart_data = []
+        for team, wins in sorted_team_stats:
+            podiums = st.session_state.team_podiums[team]
+            constructor_chart_data.append({
+                "Team": team,
+                "Wins": wins,
+                "Podiums": podiums
+            })
+
+        if constructor_chart_data:
+            constr_df = pd.DataFrame(constructor_chart_data)
+
+            fig_constr = go.Figure()
+            fig_constr.add_trace(go.Bar(
+                name="Wins",
+                x=constr_df["Team"],
+                y=constr_df["Wins"],
+                marker_color=[team_colors[t] for t in constr_df["Team"]],
+                marker_line_width=2,
+                marker_line_color="rgba(0,0,0,0.4)",
+                text=constr_df["Wins"],
+                textposition="outside",
+                textfont=dict(size=12, color="black")
+            ))
+            fig_constr.add_trace(go.Bar(
+                name="Podiums",
+                x=constr_df["Team"],
+                y=constr_df["Podiums"],
+                marker_color=[team_colors[t] + "80" for t in constr_df["Team"]],
+                marker_line_width=2,
+                marker_line_color="rgba(0,0,0,0.3)",
+                text=constr_df["Podiums"],
+                textposition="outside",
+                textfont=dict(size=12, color="black")
+            ))
+
+            fig_constr.update_layout(
+                barmode="group",
+                height=480,
+                title={
+                    'text': "Constructor Wins & Podiums",
+                    'x': 0.5,
+                    'xanchor': 'center',
+                    'font': {'size': 18, 'color': '#2c3e50'}
+                },
+                xaxis=dict(
+                    title="Team",
+                    tickangle=-30,  # Angled so 11 names don't overlap
+                    tickfont=dict(size=11, color='#2c3e50'),
+                    title_font=dict(size=14, color='#2c3e50')
+                ),
+                yaxis=dict(
+                    title="Count",
+                    gridcolor='rgba(128, 128, 128, 0.2)',
+                    tickfont=dict(size=11, color='#2c3e50'),
+                    title_font=dict(size=14, color='#2c3e50')
+                ),
+                plot_bgcolor='rgba(248, 249, 250, 0.95)',
+                paper_bgcolor='rgba(248, 249, 250, 0.95)',
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1
+                ),
+                margin=dict(l=20, r=20, t=80, b=80)
+            )
+            st.plotly_chart(fig_constr, use_container_width=True)
+
     st.markdown("---")
     st.markdown("### 🏆 Driver Statistics")
     st.markdown(f"**Races Completed: {st.session_state.races_completed}**")
@@ -1247,19 +1341,188 @@ with tab4:
     for pos, (driver, wins) in enumerate(sorted_driver_stats, 1):
         team = next(d['team'] for d in drivers if d['driver'] == driver)
         podiums = st.session_state.driver_podiums[driver]
-        driver_stats_data.append({"Position": pos, "Driver": driver, "Team": team, "Wins": wins, "Podiums": podiums})
+        points = st.session_state.total_driver_points[driver]
+        avg = points / st.session_state.races_completed if st.session_state.races_completed > 0 else 0
+        rating = calculate_driver_rating(driver)
+        driver_stats_data.append({
+            "Position": pos,
+            "Driver": driver,
+            "Team": team,
+            "Wins": wins,
+            "Podiums": podiums,
+            "Points": points
+        })
         card_class = "position-1" if pos == 1 else "position-2" if pos == 2 else "position-3" if pos == 3 else ""
+        position_icon = "🥇" if pos == 1 else "🥈" if pos == 2 else "🥉" if pos == 3 else f"P{pos}"
         st.markdown(f'''
         <div class="leaderboard-item {card_class}">
-            <span>{pos}. {driver} ({team})</span>
-            <span>Wins: {wins} | Podiums: {podiums}</span>
+            <div style="display: flex; align-items: center; min-width: 220px;">
+                <span style="margin-right: 10px; font-weight: bold;">{position_icon}</span>
+                <div>
+                    <div style="font-weight: bold; color: #000000;">{driver}</div>
+                    <div style="font-size: 12px; color: #000000; opacity: 0.7;">{team} • ⭐ {rating:.1f}/10</div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <span style="font-weight: bold; color: #000000;">{points} pts</span>
+                <span style="font-size: 12px; color: #000000;">🏆 {wins}W</span>
+                <span style="font-size: 12px; color: #000000;">🏅 {podiums}P</span>
+                <span style="font-size: 12px; color: #000000;">📊 {avg:.1f} avg</span>
+            </div>
         </div>
         ''', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
-    
+
+    # Driver wins & podiums bar chart
+    if st.session_state.races_completed > 0:
+        st.markdown("---")
+        st.markdown("#### 📊 Driver Wins & Podiums Chart")
+
+        driver_chart_data = []
+        for driver, wins in sorted_driver_stats:
+            team = next(d['team'] for d in drivers if d['driver'] == driver)
+            podiums = st.session_state.driver_podiums[driver]
+            driver_chart_data.append({
+                "Driver": driver,
+                "Team": team,
+                "Wins": wins,
+                "Podiums": podiums
+            })
+
+        if driver_chart_data:
+            drv_df = pd.DataFrame(driver_chart_data)
+
+            fig_drv = go.Figure()
+            fig_drv.add_trace(go.Bar(
+                name="Wins",
+                x=drv_df["Driver"],
+                y=drv_df["Wins"],
+                marker_color=[driver_colors.get(d, "#888888") for d in drv_df["Driver"]],
+                marker_line_width=2,
+                marker_line_color="rgba(0,0,0,0.4)",
+                text=drv_df["Wins"],
+                textposition="outside",
+                textfont=dict(size=11, color="black"),
+                hovertemplate="<b>%{x}</b><br>Wins: %{y}<br><extra></extra>"
+            ))
+            fig_drv.add_trace(go.Bar(
+                name="Podiums",
+                x=drv_df["Driver"],
+                y=drv_df["Podiums"],
+                marker_color=[driver_colors.get(d, "#888888") + "80" for d in drv_df["Driver"]],
+                marker_line_width=2,
+                marker_line_color="rgba(0,0,0,0.3)",
+                text=drv_df["Podiums"],
+                textposition="outside",
+                textfont=dict(size=11, color="black"),
+                hovertemplate="<b>%{x}</b><br>Podiums: %{y}<br><extra></extra>"
+            ))
+
+            fig_drv.update_layout(
+                barmode="group",
+                height=520,  # Taller to fit 22 drivers on x-axis
+                title={
+                    'text': "Driver Wins & Podiums",
+                    'x': 0.5,
+                    'xanchor': 'center',
+                    'font': {'size': 18, 'color': '#2c3e50'}
+                },
+                xaxis=dict(
+                    title="Driver",
+                    tickangle=-45,  # More angle needed for 22 driver names
+                    tickfont=dict(size=10, color='#2c3e50'),
+                    title_font=dict(size=14, color='#2c3e50')
+                ),
+                yaxis=dict(
+                    title="Count",
+                    gridcolor='rgba(128, 128, 128, 0.2)',
+                    tickfont=dict(size=11, color='#2c3e50'),
+                    title_font=dict(size=14, color='#2c3e50')
+                ),
+                plot_bgcolor='rgba(248, 249, 250, 0.95)',
+                paper_bgcolor='rgba(248, 249, 250, 0.95)',
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1
+                ),
+                margin=dict(l=20, r=20, t=80, b=100)  # Extra bottom margin for 22 angled labels
+            )
+            st.plotly_chart(fig_drv, use_container_width=True)
+
+        st.markdown("---")
+        st.markdown("#### ⭐ Driver Ratings Overview")
+
+        ratings_data = []
+        for driver_info in drivers:  # All 22 drivers
+            driver = driver_info['driver']
+            team = driver_info['team']
+            rating = calculate_driver_rating(driver)
+            points = st.session_state.total_driver_points[driver]
+            wins = st.session_state.driver_wins[driver]
+            podiums = st.session_state.driver_podiums[driver]
+            ratings_data.append({
+                "Driver": driver,
+                "Team": team,
+                "Rating": round(rating, 2),
+                "Points": points,
+                "Wins": wins,
+                "Podiums": podiums
+            })
+
+        ratings_data.sort(key=lambda x: x["Rating"], reverse=True)
+        ratings_df = pd.DataFrame(ratings_data)
+        ratings_df.index = ratings_df.index + 1
+
+        fig_rating = px.bar(
+            ratings_df,
+            x="Driver",
+            y="Rating",
+            color="Team",
+            text="Rating",
+            color_discrete_map=team_colors,
+            title="Driver Performance Ratings (out of 10)",
+            hover_data=["Team", "Points", "Wins", "Podiums"]
+        )
+        fig_rating.update_traces(
+            texttemplate="%{text:.1f}",
+            textposition="outside",
+            marker_line_width=2,
+            marker_line_color="rgba(0,0,0,0.3)",
+            textfont=dict(size=10, color="black")
+        )
+        fig_rating.update_layout(
+            height=500,
+            title={
+                'x': 0.5,
+                'xanchor': 'center',
+                'font': {'size': 18, 'color': '#2c3e50'}
+            },
+            xaxis=dict(
+                title="Driver",
+                tickangle=-45,  # Angled for 22 names
+                tickfont=dict(size=10, color='#2c3e50'),
+                title_font=dict(size=14, color='#2c3e50')
+            ),
+            yaxis=dict(
+                title="Rating (0-10)",
+                range=[0, 11],
+                gridcolor='rgba(128, 128, 128, 0.2)',
+                tickfont=dict(size=11, color='#2c3e50'),
+                title_font=dict(size=14, color='#2c3e50')
+            ),
+            plot_bgcolor='rgba(248, 249, 250, 0.95)',
+            paper_bgcolor='rgba(248, 249, 250, 0.95)',
+            showlegend=False,
+            margin=dict(l=20, r=20, t=80, b=100)  # Extra bottom margin for angled labels
+        )
+        st.plotly_chart(fig_rating, use_container_width=True)
+
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Tab 5: Driver Upgrades
+
 # Tab 5: Driver Upgrades
 with tab5:
     st.markdown('<div class="race-container">', unsafe_allow_html=True)
