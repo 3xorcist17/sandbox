@@ -1058,6 +1058,7 @@ with tab2:
     st.markdown('</div>', unsafe_allow_html=True)
 
 # Tab 3: Constructors' Championship Standings and Chart - REMOVED team member contribution section
+# Tab 3: Constructors' Championship Standings and Chart
 with tab3:
     st.markdown('<div class="race-container">', unsafe_allow_html=True)
     st.markdown("### 🏗️ Constructors' Championship Standings")
@@ -1112,7 +1113,6 @@ with tab3:
             <span>{points} pts</span>
         </div>
         ''', unsafe_allow_html=True)
-    
     st.markdown('</div>', unsafe_allow_html=True)
     
     st.markdown("---")
@@ -1135,8 +1135,14 @@ with tab3:
         )
         fig.update_traces(textposition="outside", textinfo="label+value")
         fig.update_layout(
-            height=600,
-            legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5),
+            height=650,  # Slightly increased to fit 11 team labels cleanly
+            legend=dict(
+                orientation="h",
+                yanchor="bottom",
+                y=-0.25,  # Pushed down slightly to avoid overlap with 11 legend items
+                xanchor="center",
+                x=0.5
+            ),
             font=dict(color="#000000"),
             plot_bgcolor='rgba(240, 242, 246, 0.95)',
             paper_bgcolor='rgba(240, 242, 246, 0.95)'
@@ -1161,32 +1167,37 @@ with tab3:
         
         if team_contribution_data:
             contrib_df = pd.DataFrame(team_contribution_data)
+            
+            # Build y columns dynamically from all driver columns (excludes Team and Total)
+            driver_cols = [col for col in contrib_df.columns if col not in ["Team", "Total"]]
+            
             fig_bar = px.bar(
                 contrib_df,
                 x="Team",
-                y=[col for col in contrib_df.columns if col not in ["Team", "Total"]],
+                y=driver_cols,
                 title="Points Contribution by Team Members",
                 labels={"value": "Points", "variable": "Driver"},
                 text_auto=True
             )
             
-            for i, trace in enumerate(fig_bar.data):
-                team_idx = i // 2
-                driver_idx = i % 2
-                team = contrib_df.iloc[team_idx]["Team"]
-                driver = teams_drivers[team][driver_idx]
-                trace.marker.color = driver_colors[driver]
-                trace.name = driver
+            # Assign correct driver colors per trace
+            for trace in fig_bar.data:
+                driver_name = trace.name
+                trace.marker.color = driver_colors.get(driver_name, "#888888")
             
             fig_bar.update_layout(
-                height=500,
+                height=550,  # Slightly increased to accommodate 11 teams on x-axis
                 xaxis_title="Team",
                 yaxis_title="Points",
                 legend_title="Driver",
                 barmode="stack",
                 font=dict(color="#000000"),
                 plot_bgcolor='rgba(240, 242, 246, 0.95)',
-                paper_bgcolor='rgba(240, 242, 246, 0.95)'
+                paper_bgcolor='rgba(240, 242, 246, 0.95)',
+                xaxis=dict(
+                    tickangle=-30,  # Angled labels so 11 team names don't overlap
+                    tickfont=dict(size=11, color='#2c3e50')
+                )
             )
             fig_bar.update_traces(textposition="inside", textfont_size=10)
             st.plotly_chart(fig_bar, use_container_width=True)
