@@ -1524,6 +1524,7 @@ with tab4:
 
 
 # Tab 5: Driver Upgrades
+# Tab 5: Driver Upgrades
 with tab5:
     st.markdown('<div class="race-container">', unsafe_allow_html=True)
     st.markdown("### 🛠️ Driver Performance Tuning Center")
@@ -1541,7 +1542,6 @@ with tab5:
     
     with preset_col2:
         if st.button("🎲 Randomize All", use_container_width=True):
-            import random
             for driver_info in drivers:
                 st.session_state.driver_headstarts[driver_info['driver']] = random.randint(1, 9)
             st.rerun()
@@ -1561,9 +1561,8 @@ with tab5:
     st.markdown("---")
     st.markdown("#### 🏎️ Individual Driver Tuning")
     
-    # Group drivers by team for better organization
+    # 11 teams in 2 columns
     team_columns = st.columns(2)
-    team_list = list(teams_drivers.keys())
     
     for i, (team, team_drivers) in enumerate(teams_drivers.items()):
         with team_columns[i % 2]:
@@ -1571,7 +1570,7 @@ with tab5:
             <div class="rating-card" style="background: linear-gradient(135deg, {team_colors[team]}, {team_colors[team]}40); margin-bottom: 20px;">
                 <div class="rating-header">
                     <div>
-                        <div class="driver-name" style="font-size: 1.4em;">🏁 {team}</div>
+                        <div class="driver-name" style="font-size: 1.4em; color: #ffffff;">🏁 {team}</div>
                     </div>
                 </div>
             </div>
@@ -1580,10 +1579,8 @@ with tab5:
             for driver in team_drivers:
                 current_headstart = st.session_state.driver_headstarts.get(driver, 1)
                 
-                # Create a unique key for each slider
                 slider_key = f"headstart_slider_{driver}_{team}"
                 
-                # Custom slider with visual feedback
                 st.markdown(f"**{driver}** - Current: {current_headstart}%")
                 
                 new_headstart = st.slider(
@@ -1598,7 +1595,6 @@ with tab5:
                 
                 st.session_state.driver_headstarts[driver] = new_headstart
                 
-                # Visual progress bar for headstart
                 progress_width = (new_headstart / 9) * 100
                 boost_level = "🟢 Conservative" if new_headstart <= 3 else "🟡 Moderate" if new_headstart <= 6 else "🔴 Aggressive"
                 
@@ -1610,7 +1606,7 @@ with tab5:
                     </div>
                     <div style="background-color: #f0f0f0; border-radius: 15px; height: 20px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);">
                         <div style="background: linear-gradient(90deg, {driver_colors.get(driver, '#3498db')}, {driver_colors.get(driver, '#3498db')}80); height: 100%; width: {progress_width}%; border-radius: 15px; position: relative; transition: width 0.3s ease;">
-                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 11px; font-weight: bold; color: #000000;">
+                            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 11px; font-weight: bold; color: #ffffff;">
                                 {new_headstart}% Boost
                             </div>
                         </div>
@@ -1620,23 +1616,21 @@ with tab5:
                 
                 st.markdown("---")
     
-    # Summary section with enhanced visuals
+    # Summary section
     st.markdown("#### 📊 Performance Summary & Analysis")
     
-    # Calculate statistics
     headstart_values = list(st.session_state.driver_headstarts.values())
     avg_headstart = sum(headstart_values) / len(headstart_values)
     max_headstart = max(headstart_values)
     min_headstart = min(headstart_values)
     
-    # Summary metrics
     summary_col1, summary_col2, summary_col3, summary_col4 = st.columns(4)
     
     with summary_col1:
         st.metric(
             label="🎯 Average Boost",
             value=f"{avg_headstart:.1f}%",
-            help="Average headstart across all drivers"
+            help="Average headstart across all 22 drivers"
         )
     
     with summary_col2:
@@ -1661,13 +1655,76 @@ with tab5:
             help="Difference between highest and lowest headstart"
         )
     
-    # Top boosted drivers
     st.markdown("---")
-    #st.markdown("#### 🏆 Most Boosted Drivers")
-    
-    # Sort drivers by headstart
+
+    # Boost distribution chart across all 22 drivers
+    st.markdown("#### 📊 Boost Distribution Chart")
+
+    boost_chart_data = []
+    for driver_info in drivers:  # All 22 drivers
+        driver = driver_info['driver']
+        team = driver_info['team']
+        headstart = st.session_state.driver_headstarts.get(driver, 1)
+        boost_chart_data.append({
+            "Driver": driver,
+            "Team": team,
+            "Boost": headstart
+        })
+
+    boost_chart_data.sort(key=lambda x: x["Boost"], reverse=True)
+    boost_df = pd.DataFrame(boost_chart_data)
+
+    fig_boost = px.bar(
+        boost_df,
+        x="Driver",
+        y="Boost",
+        color="Team",
+        text="Boost",
+        color_discrete_map=team_colors,
+        title="Driver Performance Boost Settings",
+        labels={"Boost": "Boost %", "Driver": "Driver"}
+    )
+    fig_boost.update_traces(
+        texttemplate="%{text}%",
+        textposition="outside",
+        marker_line_width=2,
+        marker_line_color="rgba(0,0,0,0.3)",
+        textfont=dict(size=10, color="black")
+    )
+    fig_boost.update_layout(
+        height=480,
+        title={
+            'x': 0.5,
+            'xanchor': 'center',
+            'font': {'size': 18, 'color': '#2c3e50'}
+        },
+        xaxis=dict(
+            title="Driver",
+            tickangle=-45,  # Angled for 22 names
+            tickfont=dict(size=10, color='#2c3e50'),
+            title_font=dict(size=14, color='#2c3e50')
+        ),
+        yaxis=dict(
+            title="Boost %",
+            range=[0, 11],
+            gridcolor='rgba(128, 128, 128, 0.2)',
+            tickfont=dict(size=11, color='#2c3e50'),
+            title_font=dict(size=14, color='#2c3e50')
+        ),
+        plot_bgcolor='rgba(248, 249, 250, 0.95)',
+        paper_bgcolor='rgba(248, 249, 250, 0.95)',
+        showlegend=False,
+        margin=dict(l=20, r=20, t=80, b=100)  # Extra bottom margin for 22 angled labels
+    )
+    st.plotly_chart(fig_boost, use_container_width=True)
+
+    st.markdown("---")
+
+    # Top boosted / most conservative split leaderboards
+    st.markdown("#### 🏆 Boost Rankings")
+
     sorted_headstarts = sorted(
-        [(driver, headstart, next(d['team'] for d in drivers if d['driver'] == driver)) 
+        [(driver, headstart, next(d['team'] for d in drivers if d['driver'] == driver))
          for driver, headstart in st.session_state.driver_headstarts.items()],
         key=lambda x: x[1],
         reverse=True
@@ -1678,14 +1735,20 @@ with tab5:
     with boost_col1:
         st.markdown("##### 🥇 Highest Performance Boosts")
         st.markdown('<div class="leaderboard">', unsafe_allow_html=True)
-        for pos, (driver, headstart, team) in enumerate(sorted_headstarts[:10], 1):
+        for pos, (driver, headstart, team) in enumerate(sorted_headstarts[:11], 1):  # Top 11 of 22
             card_class = "position-1" if pos == 1 else "position-2" if pos == 2 else "position-3" if pos == 3 else ""
             medal = "🥇" if pos == 1 else "🥈" if pos == 2 else "🥉" if pos == 3 else f"{pos}."
-            
+            boost_level = "🟢" if headstart <= 3 else "🟡" if headstart <= 6 else "🔴"
             st.markdown(f'''
             <div class="leaderboard-item {card_class}">
-                <span>{medal} {driver} ({team})</span>
-                <span>{headstart}% Boost</span>
+                <div style="display: flex; align-items: center;">
+                    <span style="margin-right: 8px;">{medal}</span>
+                    <div>
+                        <div style="font-weight: bold; color: #000000;">{driver}</div>
+                        <div style="font-size: 11px; color: #000000; opacity: 0.7;">{team}</div>
+                    </div>
+                </div>
+                <span>{boost_level} {headstart}% Boost</span>
             </div>
             ''', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
@@ -1693,88 +1756,73 @@ with tab5:
     with boost_col2:
         st.markdown("##### 🐌 Most Conservative Setups")
         st.markdown('<div class="leaderboard">', unsafe_allow_html=True)
-        conservative_drivers = sorted_headstarts[-10:][::-1]  # Get bottom 10, reverse for display
+        conservative_drivers = sorted_headstarts[-11:][::-1]  # Bottom 11 of 22, reversed
         for pos, (driver, headstart, team) in enumerate(conservative_drivers, 1):
+            boost_level = "🟢" if headstart <= 3 else "🟡" if headstart <= 6 else "🔴"
             st.markdown(f'''
             <div class="leaderboard-item">
-                <span>{pos}. {driver} ({team})</span>
-                <span>{headstart}% Boost</span>
+                <div style="display: flex; align-items: center;">
+                    <span style="margin-right: 8px;">{pos}.</span>
+                    <div>
+                        <div style="font-weight: bold; color: #000000;">{driver}</div>
+                        <div style="font-size: 11px; color: #000000; opacity: 0.7;">{team}</div>
+                    </div>
+                </div>
+                <span>{boost_level} {headstart}% Boost</span>
             </div>
             ''', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
-    
-    # # Team performance analysis
-    # st.markdown("---")
-    # st.markdown("#### 🏗️ Team Performance Analysis")
-    
-    # team_analysis_data = []
-    # for team, team_drivers in teams_drivers.items():
-    #     driver1, driver2 = team_drivers
-    #     driver1_boost = st.session_state.driver_headstarts.get(driver1, 1)
-    #     driver2_boost = st.session_state.driver_headstarts.get(driver2, 1)
-    #     avg_team_boost = (driver1_boost + driver2_boost) / 2
-    #     boost_balance = abs(driver1_boost - driver2_boost)
-        
-    #     team_analysis_data.append({
-    #         'team': team,
-    #         'avg_boost': avg_team_boost,
-    #         'balance': boost_balance,
-    #         'driver1': driver1,
-    #         'driver1_boost': driver1_boost,
-    #         'driver2': driver2,
-    #         'driver2_boost': driver2_boost
-    #     })
-    
-    # # Sort by average boost
-    # team_analysis_data.sort(key=lambda x: x['avg_boost'], reverse=True)
-    
-    # team_analysis_col1, team_analysis_col2 = st.columns(2)
-    
-    # with team_analysis_col1:
-    #     st.markdown("##### 🚀 Highest Team Average Boost")
-    #     for i, team_data in enumerate(team_analysis_data[:5]):
-    #         card_class = "rating-card-gold" if i == 0 else "rating-card-silver" if i == 1 else "rating-card-bronze" if i == 2 else "rating-card"
-    #         medal = "🥇" if i == 0 else "🥈" if i == 1 else "🥉" if i == 2 else f"{i+1}."
-            
-    #         st.markdown(f'''
-    #         <div class="{card_class}">
-    #             <div class="rating-header">
-    #                 <div>
-    #                     <div class="driver-name">{medal} {team_data['team']}</div>
-    #                     <div class="team-name">{team_data['driver1']}: {team_data['driver1_boost']}% | {team_data['driver2']}: {team_data['driver2_boost']}%</div>
-    #                 </div>
-    #                 <div class="rating-score">{team_data['avg_boost']:.1f}%</div>
-    #             </div>
-    #             <div class="rating-details">
-    #                 <span>Balance Gap: {team_data['balance']}%</span>
-    #                 <span>Team Strategy: {"Balanced" if team_data['balance'] <= 1 else "Focused" if team_data['balance'] <= 3 else "Uneven"}</span>
-    #             </div>
-    #         </div>
-    #         ''', unsafe_allow_html=True)
-    
-    # with team_analysis_col2:
-    #     st.markdown("##### ⚖️ Most Balanced Teams")
-    #     balanced_teams = sorted(team_analysis_data, key=lambda x: x['balance'])
-    #     for i, team_data in enumerate(balanced_teams[:5]):
-    #         balance_icon = "⚖️" if team_data['balance'] == 0 else "📊" if team_data['balance'] <= 1 else "📈" if team_data['balance'] <= 2 else "📉"
-            
-    #         st.markdown(f'''
-    #         <div class="rating-card">
-    #             <div class="rating-header">
-    #                 <div>
-    #                     <div class="driver-name">{balance_icon} {team_data['team']}</div>
-    #                     <div class="team-name">{team_data['driver1']}: {team_data['driver1_boost']}% | {team_data['driver2']}: {team_data['driver2_boost']}%</div>
-    #                 </div>
-    #                 <div class="rating-score">{team_data['balance']}%</div>
-    #             </div>
-    #             <div class="rating-details">
-    #                 <span>Avg Boost: {team_data['avg_boost']:.1f}%</span>
-    #                 <span>Balance: {"Perfect" if team_data['balance'] == 0 else "Excellent" if team_data['balance'] <= 1 else "Good" if team_data['balance'] <= 2 else "Uneven"}</span>
-    #             </div>
-    #         </div>
-    #         ''', unsafe_allow_html=True)
-    
-    # Strategy recommendations
+
+    st.markdown("---")
+
+    # Team average boost analysis
+    st.markdown("#### 🏗️ Team Boost Analysis")
+
+    team_boost_data = []
+    for team, team_drivers in teams_drivers.items():  # All 11 teams
+        driver1, driver2 = team_drivers
+        d1_boost = st.session_state.driver_headstarts.get(driver1, 1)
+        d2_boost = st.session_state.driver_headstarts.get(driver2, 1)
+        avg_boost = (d1_boost + d2_boost) / 2
+        balance_gap = abs(d1_boost - d2_boost)
+        team_boost_data.append({
+            "Team": team,
+            "Avg Boost": avg_boost,
+            "Balance Gap": balance_gap,
+            driver1: d1_boost,
+            driver2: d2_boost
+        })
+
+    team_boost_data.sort(key=lambda x: x["Avg Boost"], reverse=True)
+
+    st.markdown('<div class="leaderboard">', unsafe_allow_html=True)
+    for pos, tb in enumerate(team_boost_data, 1):
+        team = tb["Team"]
+        driver1, driver2 = teams_drivers[team]
+        d1_boost = tb[driver1]
+        d2_boost = tb[driver2]
+        avg = tb["Avg Boost"]
+        gap = tb["Balance Gap"]
+        balance_label = "⚖️ Balanced" if gap == 0 else "📊 Close" if gap <= 2 else "📈 Uneven"
+        card_class = "position-1" if pos == 1 else "position-2" if pos == 2 else "position-3" if pos == 3 else ""
+        position_icon = "🥇" if pos == 1 else "🥈" if pos == 2 else "🥉" if pos == 3 else f"P{pos}"
+        st.markdown(f'''
+        <div class="leaderboard-item {card_class}">
+            <div style="display: flex; align-items: center; min-width: 200px;">
+                <span style="margin-right: 10px; font-weight: bold;">{position_icon}</span>
+                <div>
+                    <div style="font-weight: bold; color: #000000;">{team}</div>
+                    <div style="font-size: 11px; color: #000000; opacity: 0.7;">{driver1}: {d1_boost}% | {driver2}: {d2_boost}%</div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <span style="font-weight: bold; color: #000000;">{avg:.1f}% avg</span>
+                <span style="font-size: 11px; color: #000000;">{balance_label}</span>
+            </div>
+        </div>
+        ''', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
     st.markdown("---")
     st.markdown("#### 💡 Strategy Recommendations")
     
