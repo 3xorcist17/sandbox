@@ -8,6 +8,15 @@ import plotly.graph_objects as go
 st.title("Formula 1 Racing 🏎️🏁🚥🏆")
 st.set_page_config(page_title="Formula 1 Racing", page_icon="🏎️", layout="wide")
 
+tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+    "Race & Results",
+    "Drivers' Championship",
+    "Constructors' Championship",
+    "Team & Driver Stats",
+    "Driver Upgrades",
+    "Season Summary"
+])
+
 # Updated CSS with grey/ash colors changed to black
 st.markdown("""
     <style>
