@@ -249,10 +249,11 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# Team and driver data (unchanged from original)
+# Team and driver data - UPDATED with Cadillac
 teams_drivers = {
     "Alpine": ["Gas", "Doo"],
     "Aston Martin": ["Alo", "Str"],
+    "Cadillac": ["Bot", "Per"],
     "Ferrari": ["Lec", "Ham"],
     "Haas": ["Oco", "Bea"],
     "McLaren": ["Nor", "Pia"],
@@ -263,10 +264,11 @@ teams_drivers = {
     "Williams": ["Sai", "Alb"]
 }
 
-# Team colors (unchanged)
+# Team colors - UPDATED with Cadillac (black and white theme)
 team_colors = {
     "Alpine": "hsl(308, 100%, 34.4%)",
     "Aston Martin": "hsl(185, 99.6%, 31.7%)",
+    "Cadillac": "hsl(0, 0%, 10%)",
     "Ferrari": "hsl(0, 99.6%, 39.7%)",
     "Haas": "hsl(0, 99.6%, 28.2%)",
     "McLaren": "hsl(33, 99.6%, 42.4%)",
@@ -277,7 +279,7 @@ team_colors = {
     "Williams": "hsl(201, 99.6%, 32.2%)"
 }
 
-# Driver colors (unchanged)
+# Driver colors (unchanged logic, now includes Bot and Per)
 driver_colors = {}
 for team, drivers_list in teams_drivers.items():
     color_parts = team_colors[team].replace('hsl(', '').replace(')', '').split(',')
@@ -287,7 +289,7 @@ for team, drivers_list in teams_drivers.items():
     driver_colors[drivers_list[0]] = f"hsl({hue}, {saturation}%, {min(100, lightness + 5)}%)"
     driver_colors[drivers_list[1]] = f"hsl({hue}, {saturation}%, {max(0, lightness - 5)}%)"
 
-# Flatten drivers list (unchanged)
+# Flatten drivers list - now 22 drivers
 drivers = []
 for team, driver_list in teams_drivers.items():
     for driver in driver_list:
@@ -296,9 +298,9 @@ for team, driver_list in teams_drivers.items():
 # Points system (unchanged)
 points_system = {1: 25, 2: 18, 3: 15, 4: 12, 5: 10, 6: 8, 7: 6, 8: 4, 9: 2, 10: 1}
 
-# Initialize session state (unchanged)
+# Initialize session state - UPDATED to 22 drivers
 if 'progress_values' not in st.session_state:
-    st.session_state.progress_values = [0] * 20
+    st.session_state.progress_values = [0] * 22
 if 'finish_order' not in st.session_state:
     st.session_state.finish_order = []
 if 'total_team_points' not in st.session_state:
@@ -324,65 +326,10 @@ if 'race_started' not in st.session_state:
 if 'driver_headstarts' not in st.session_state:
     st.session_state.driver_headstarts = {driver['driver']: 1 for driver in drivers}
 
-# Functions (unchanged)
-def calculate_driver_rating(driver):
-    points = st.session_state.total_driver_points[driver]
-    wins = st.session_state.driver_wins[driver]
-    podiums = st.session_state.driver_podiums[driver]
-    races = st.session_state.races_completed
-    
-    if races == 0:
-        return 5.0
-    
-    max_possible_points = races * 25
-    points_ratio = min(points / max_possible_points, 1.0) if max_possible_points > 0 else 0
-    win_ratio = wins / races if races > 0 else 0
-    podium_ratio = podiums / races if races > 0 else 0
-    
-    rating = (points_ratio * 5.0) + (win_ratio * 3.0) + (podium_ratio * 2.0)
-    return min(max(rating, 0.0), 10.0)
-
-def get_current_leaderboard():
-    finished_drivers = []
-    racing_drivers = []
-    
-    for driver_info in st.session_state.finish_order:
-        finished_drivers.append({
-            'driver': driver_info['driver'],
-            'team': driver_info['team'],
-            'progress': 100,
-            'finished': True
-        })
-    
-    finished_driver_names = [d['driver'] for d in st.session_state.finish_order]
-    for i, driver_info in enumerate(drivers):
-        if driver_info['driver'] not in finished_driver_names:
-            racing_drivers.append({
-                'driver': driver_info['driver'],
-                'team': driver_info['team'],
-                'progress': st.session_state.progress_values[i],
-                'finished': False,
-                'index': i
-            })
-    
-    racing_drivers.sort(key=lambda x: x['progress'], reverse=True)
-    return finished_drivers + racing_drivers
-
-# Create tabs - removed "Driver Ratings" tab
-tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
-    "Race & Results",
-    "Drivers' Championship",
-    "Constructors' Championship",
-    "Team & Driver Stats",
-    "Driver Upgrades",
-    "Season Summary"
-])
-
-# Tab 1: Race & Results (unchanged from original, affected by CSS updates)
-# Tab 1: Race & Results (with proper race storage)
+# Tab 1: Race & Results - UPDATED for 22 drivers
 with tab1:
     if st.button("🏁 Start Race"):
-        st.session_state.progress_values = [0] * 20
+        st.session_state.progress_values = [0] * 22
         for i, driver_info in enumerate(drivers):
             driver = driver_info['driver']
             headstart = st.session_state.driver_headstarts.get(driver, 1)
@@ -466,7 +413,7 @@ with tab1:
                any(value < 100 for value in st.session_state.progress_values) and 
                not st.session_state.race_finished):
             
-            for i in range(20):
+            for i in range(22):  # Updated to 22
                 if st.session_state.progress_values[i] < 100:
                     increment = random.randint(0, 4)
                     st.session_state.progress_values[i] = min(100, st.session_state.progress_values[i] + increment)
@@ -535,12 +482,11 @@ with tab1:
                     
                     placeholder.markdown(progress_html, unsafe_allow_html=True)
             
-            if len(st.session_state.finish_order) == 20:
+            if len(st.session_state.finish_order) == 22:  # Updated to 22
                 st.session_state.race_finished = True
                 st.session_state.races_completed += 1
                 st.session_state.race_started = False
                 
-                # CRITICAL: Store complete race results BEFORE they get lost
                 if 'complete_race_history' not in st.session_state:
                     st.session_state.complete_race_history = []
                 
