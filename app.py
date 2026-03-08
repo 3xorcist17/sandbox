@@ -1322,17 +1322,15 @@ with tab4:
         if constructor_chart_data:
             constr_df = pd.DataFrame(constructor_chart_data)
 
-            fig_constr = go.Figure()
             fig_constr.add_trace(go.Bar(
-                name="Wins",
-                x=constr_df["Team"],
-                y=constr_df["Wins"],
-                marker_color=[team_colors[t] for t in constr_df["Team"]],
-                marker_line_width=2,
-                marker_line_color="rgba(0,0,0,0.4)",
-                text=constr_df["Wins"],
-                textposition="outside",
-                textfont=dict(size=12, color="black")
+            name="Wins",
+            x=constr_df["Team"],
+            y=constr_df["Wins"],
+            marker_color=[team_colors[t] for t in constr_df["Team"]],
+            marker_line_width=2,
+            marker_line_color="rgba(0,0,0,0.4)",
+            text=constr_df["Wins"],
+            textposition="outside"
             ))
             fig_constr.add_trace(go.Bar(
                 name="Podiums",
@@ -1342,9 +1340,9 @@ with tab4:
                 marker_line_width=2,
                 marker_line_color="rgba(0,0,0,0.3)",
                 text=constr_df["Podiums"],
-                textposition="outside",
-                textfont=dict(size=12, color="black")
+                textposition="outside"
             ))
+            fig_constr.update_traces(textfont_size=12, textfont_color="black")
 
             fig_constr.update_layout(
                 barmode="group",
@@ -1445,18 +1443,16 @@ with tab4:
         if driver_chart_data:
             drv_df = pd.DataFrame(driver_chart_data)
 
-            fig_drv = go.Figure()
             fig_drv.add_trace(go.Bar(
-                name="Wins",
-                x=drv_df["Driver"],
-                y=drv_df["Wins"],
-                marker_color=[driver_colors.get(d, "#888888") for d in drv_df["Driver"]],
-                marker_line_width=2,
-                marker_line_color="rgba(0,0,0,0.4)",
-                text=drv_df["Wins"],
-                textposition="outside",
-                textfont=dict(size=11, color="black"),
-                hovertemplate="<b>%{x}</b><br>Wins: %{y}<br><extra></extra>"
+            name="Wins",
+            x=drv_df["Driver"],
+            y=drv_df["Wins"],
+            marker_color=[driver_colors.get(d, "#888888") for d in drv_df["Driver"]],
+            marker_line_width=2,
+            marker_line_color="rgba(0,0,0,0.4)",
+            text=drv_df["Wins"],
+            textposition="outside",
+            hovertemplate="<b>%{x}</b><br>Wins: %{y}<br><extra></extra>"
             ))
             fig_drv.add_trace(go.Bar(
                 name="Podiums",
@@ -1467,9 +1463,9 @@ with tab4:
                 marker_line_color="rgba(0,0,0,0.3)",
                 text=drv_df["Podiums"],
                 textposition="outside",
-                textfont=dict(size=11, color="black"),
                 hovertemplate="<b>%{x}</b><br>Podiums: %{y}<br><extra></extra>"
             ))
+            fig_drv.update_traces(textfont_size=11, textfont_color="black")
 
             fig_drv.update_layout(
                 barmode="group",
