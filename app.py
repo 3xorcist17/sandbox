@@ -1885,6 +1885,7 @@ with tab5:
     st.markdown('</div>', unsafe_allow_html=True)
 
 # Tab 6: Season Summary - Enhanced with More Awards
+# Tab 6: Season Summary
 with tab6:
     st.markdown('<div class="race-container">', unsafe_allow_html=True)
     st.markdown("### 🏁 Season Summary")
@@ -1992,22 +1993,13 @@ with tab6:
         st.markdown("---")
         st.markdown("#### 🏆 Race Winners Summary")
         if st.session_state.race_summaries:
-            winners_data = []
-            for summary in st.session_state.race_summaries:
-                winners_data.append({
-                    "Race": summary["Race"],
-                    "Winner": summary["P1"],
-                    "2nd Place": summary["P2"],
-                    "3rd Place": summary["P3"]
-                })
-            
             st.markdown('<div class="leaderboard">', unsafe_allow_html=True)
-            for idx, summary in enumerate(winners_data):
+            for idx, summary in enumerate(st.session_state.race_summaries):
                 card_class = "position-1" if idx == 0 else ""
                 st.markdown(f'''
                 <div class="leaderboard-item {card_class}">
                     <span>Race {summary['Race']}</span>
-                    <span>Winner: {summary['Winner']} | 2nd: {summary['2nd Place']} | 3rd: {summary['3rd Place']}</span>
+                    <span>Winner: {summary['P1']} | 2nd: {summary['P2']} | 3rd: {summary['P3']}</span>
                 </div>
                 ''', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
@@ -2122,7 +2114,6 @@ with tab6:
         award_col4, award_col5, award_col6 = st.columns(3)
         
         with award_col4:
-            # Most Consistent Driver (no wins but points)
             consistent_driver = None
             consistent_points = 0
             for driver, points in sorted_driver_standings:
@@ -2162,7 +2153,6 @@ with tab6:
                 ''', unsafe_allow_html=True)
         
         with award_col5:
-            # Highest Rated Driver
             highest_rated_driver = max(
                 [(d['driver'], calculate_driver_rating(d['driver'])) for d in drivers],
                 key=lambda x: x[1]
@@ -2188,7 +2178,6 @@ with tab6:
             ''', unsafe_allow_html=True)
         
         with award_col6:
-            # Best Rookie (driver with least experience/points but still competitive)
             rookie_candidates = [(driver, points) for driver, points in sorted_driver_standings if points < 50 and points > 0]
             if rookie_candidates:
                 best_rookie = max(rookie_candidates, key=lambda x: x[1])
@@ -2226,7 +2215,6 @@ with tab6:
         award_col7, award_col8, award_col9 = st.columns(3)
         
         with award_col7:
-            # Most Improved Team (based on recent performance)
             if len(st.session_state.race_summaries) >= 3:
                 recent_winners = [summary["P1"].split(' (')[1].replace(')', '') for summary in st.session_state.race_summaries[-3:]]
                 team_recent_wins = {}
@@ -2277,7 +2265,6 @@ with tab6:
                 ''', unsafe_allow_html=True)
         
         with award_col8:
-            # Point Scoring Machine (most points per race average)
             best_avg_driver = None
             best_avg = 0
             for driver, points in sorted_driver_standings:
@@ -2319,9 +2306,8 @@ with tab6:
                 ''', unsafe_allow_html=True)
         
         with award_col9:
-            # Underdog Hero (lowest headstart but good performance)
             underdog_candidates = []
-            for driver_info in drivers:
+            for driver_info in drivers:  # All 22 drivers
                 driver = driver_info['driver']
                 headstart = st.session_state.driver_headstarts.get(driver, 1)
                 points = st.session_state.total_driver_points[driver]
@@ -2365,10 +2351,9 @@ with tab6:
         award_col10, award_col11, award_col12 = st.columns(3)
         
         with award_col10:
-            # Best Teammate Partnership (smallest gap between teammates)
             best_partnership = None
             smallest_gap = float('inf')
-            for team, team_drivers in teams_drivers.items():
+            for team, team_drivers in teams_drivers.items():  # All 11 teams
                 driver1, driver2 = team_drivers
                 driver1_points = st.session_state.total_driver_points[driver1]
                 driver2_points = st.session_state.total_driver_points[driver2]
@@ -2409,10 +2394,9 @@ with tab6:
                 ''', unsafe_allow_html=True)
         
         with award_col11:
-            # Giant Killer (driver who beats highly rated teammates)
             giant_killer = None
             best_teammate_beating_ratio = 0
-            for team, team_drivers in teams_drivers.items():
+            for team, team_drivers in teams_drivers.items():  # All 11 teams
                 driver1, driver2 = team_drivers
                 driver1_points = st.session_state.total_driver_points[driver1]
                 driver2_points = st.session_state.total_driver_points[driver2]
@@ -2460,15 +2444,12 @@ with tab6:
                 ''', unsafe_allow_html=True)
         
         with award_col12:
-            # Comeback King (driver who improved most from last position)
             if st.session_state.race_summaries:
                 comeback_scores = {}
                 for summary in st.session_state.race_summaries:
-                    # Count podium finishes for comeback calculation
                     p1_driver = summary["P1"].split(' (')[0]
                     p2_driver = summary["P2"].split(' (')[0]
                     p3_driver = summary["P3"].split(' (')[0]
-                    
                     comeback_scores[p1_driver] = comeback_scores.get(p1_driver, 0) + 3
                     comeback_scores[p2_driver] = comeback_scores.get(p2_driver, 0) + 2
                     comeback_scores[p3_driver] = comeback_scores.get(p3_driver, 0) + 1
@@ -2522,9 +2503,8 @@ with tab6:
         award_col13, award_col14, award_col15 = st.columns(3)
         
         with award_col13:
-            # Speed Demon (driver with highest headstart who still performs well)
             speed_demons = []
-            for driver_info in drivers:
+            for driver_info in drivers:  # All 22 drivers
                 driver = driver_info['driver']
                 headstart = st.session_state.driver_headstarts.get(driver, 1)
                 points = st.session_state.total_driver_points[driver]
@@ -2563,9 +2543,8 @@ with tab6:
                 ''', unsafe_allow_html=True)
         
         with award_col14:
-            # Dark Horse (surprising performer with low expectations)
             dark_horses = []
-            for driver_info in drivers:
+            for driver_info in drivers:  # All 22 drivers
                 driver = driver_info['driver']
                 headstart = st.session_state.driver_headstarts.get(driver, 1)
                 points = st.session_state.total_driver_points[driver]
@@ -2605,10 +2584,8 @@ with tab6:
                 ''', unsafe_allow_html=True)
         
         with award_col15:
-            # Veteran Excellence (consistent points without being championship leader)
             veterans = []
-            championship_leader = sorted_driver_standings[0][0] if sorted_driver_standings else None
-            for driver, points in sorted_driver_standings[1:6]:  # Top 2-6 drivers
+            for driver, points in sorted_driver_standings[1:6]:
                 if points > 0:
                     consistency_score = points / st.session_state.races_completed
                     podiums = st.session_state.driver_podiums[driver]
@@ -2650,9 +2627,8 @@ with tab6:
         award_col16, award_col17, award_col18 = st.columns(3)
         
         with award_col16:
-            # Lucky Charm (driver who gets points despite low performance indicators)
             lucky_charms = []
-            for driver_info in drivers:
+            for driver_info in drivers:  # All 22 drivers
                 driver = driver_info['driver']
                 points = st.session_state.total_driver_points[driver]
                 wins = st.session_state.driver_wins[driver]
@@ -2692,9 +2668,8 @@ with tab6:
                 ''', unsafe_allow_html=True)
         
         with award_col17:
-            # Perfect Storm (team with both drivers performing well)
             perfect_storms = []
-            for team, team_drivers in teams_drivers.items():
+            for team, team_drivers in teams_drivers.items():  # All 11 teams
                 driver1, driver2 = team_drivers
                 driver1_points = st.session_state.total_driver_points[driver1]
                 driver2_points = st.session_state.total_driver_points[driver2]
@@ -2735,9 +2710,8 @@ with tab6:
                 ''', unsafe_allow_html=True)
         
         with award_col18:
-            # Overachiever (best points-to-headstart ratio)
             overachievers = []
-            for driver_info in drivers:
+            for driver_info in drivers:  # All 22 drivers
                 driver = driver_info['driver']
                 headstart = st.session_state.driver_headstarts.get(driver, 1)
                 points = st.session_state.total_driver_points[driver]
@@ -2781,7 +2755,6 @@ with tab6:
         award_col19, award_col20, award_col21 = st.columns(3)
         
         with award_col19:
-            # Breakthrough Driver (first win of the season)
             if st.session_state.race_summaries:
                 first_time_winners = []
                 seen_winners = set()
@@ -2792,7 +2765,7 @@ with tab6:
                         seen_winners.add(winner)
                 
                 if first_time_winners:
-                    breakthrough_driver = first_time_winners[0]  # First unique winner
+                    breakthrough_driver = first_time_winners[0]
                     driver_team = next(d['team'] for d in drivers if d['driver'] == breakthrough_driver)
                     total_wins = st.session_state.driver_wins[breakthrough_driver]
                     st.markdown(f'''
@@ -2836,9 +2809,8 @@ with tab6:
                 ''', unsafe_allow_html=True)
         
         with award_col20:
-            # Team Harmony (team with most balanced driver contributions)
             harmony_teams = []
-            for team, team_drivers in teams_drivers.items():
+            for team, team_drivers in teams_drivers.items():  # All 11 teams
                 driver1, driver2 = team_drivers
                 driver1_points = st.session_state.total_driver_points[driver1]
                 driver2_points = st.session_state.total_driver_points[driver2]
@@ -2879,7 +2851,6 @@ with tab6:
                 ''', unsafe_allow_html=True)
         
         with award_col21:
-            # Championship Contender (top 3 in points with multiple podiums)
             contenders = []
             for driver, points in sorted_driver_standings[:5]:
                 podiums = st.session_state.driver_podiums[driver]
@@ -2918,6 +2889,46 @@ with tab6:
                     </div>
                 </div>
                 ''', unsafe_allow_html=True)
+        
+        # Awards legend
+        st.markdown("---")
+        st.markdown("#### 📖 Awards Guide")
+
+        awards_legend = [
+            ("🏆 Race Winner King", "Driver with the most race wins"),
+            ("🥇 Podium Master", "Driver with the most podium finishes"),
+            ("🏗️ Constructor Champion", "Team with the most total points"),
+            ("🌟 Mr. Reliable", "Most points without a single race win"),
+            ("⭐ Highest Rated", "Best overall driver rating score (0-10)"),
+            ("🌱 Rising Star", "Best performing driver with under 50 points"),
+            ("📈 Most Improved Team", "Team with most wins in last 3 races"),
+            ("⚡ Point Scoring Machine", "Highest average points per race"),
+            ("🦾 Underdog Hero", "Best points-to-headstart efficiency"),
+            ("🤝 Best Partnership", "Teammates with smallest points gap"),
+            ("🗡️ Giant Killer", "Lower headstart driver who beats favored teammate"),
+            ("👑 Comeback King", "Highest cumulative podium score across all races"),
+            ("💨 Speed Demon", "High headstart (≥7%) driver delivering 20+ points"),
+            ("🐎 Dark Horse", "Low headstart (≤3%) driver with 30+ pts or a win"),
+            ("🎖️ Veteran Excellence", "Most consistent top-5 championship performer"),
+            ("🍀 Lucky Charm", "15+ points with 0 wins and ≤1 podium"),
+            ("⛈️ Perfect Storm", "Team with both drivers on 20+ pts and 60+ team total"),
+            ("🚀 Overachiever", "Best points-to-headstart percentage ratio"),
+            ("💥 Breakthrough Driver", "First unique race winner of the season"),
+            ("🎵 Team Harmony", "Team with most balanced driver point distribution"),
+            ("🏁 Championship Contender", "Top-5 driver with 25+ pts and 2+ podiums"),
+        ]
+
+        legend_col1, legend_col2 = st.columns(2)
+        for idx, (award, description) in enumerate(awards_legend):
+            with legend_col1 if idx % 2 == 0 else legend_col2:
+                st.markdown(f'''
+                <div style="background: rgba(255,255,255,0.9); border-radius: 8px; padding: 10px 14px;
+                            margin-bottom: 8px; border-left: 4px solid #667eea;
+                            box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
+                    <div style="font-weight: bold; color: #000000; font-size: 13px;">{award}</div>
+                    <div style="color: #000000; font-size: 11px; opacity: 0.75; margin-top: 2px;">{description}</div>
+                </div>
+                ''', unsafe_allow_html=True)
     
     else:
         st.markdown('<div class="rating-card">', unsafe_allow_html=True)
@@ -2926,82 +2937,3 @@ with tab6:
         st.markdown('</div>', unsafe_allow_html=True)
     
     st.markdown('</div>', unsafe_allow_html=True)
-
-    
-    st.markdown("---")
-    # Mr. Reliable (Green)
-    st.write("#### 🌟 Mr. Reliable")
-    st.write("**Driver with most points without a race win**")
-    
-
-    # Rising Star (Orange)
-    st.write("#### 🌱 Rising Star") 
-    st.write("**Best performing driver with under 50 points**")
-    
-
-    # Giant Killer (Red)
-    st.write("#### 🗡️ Giant Killer")
-    st.write("**Lower headstart driver who beats favored teammate**") 
-    
-
-    # Comeback King (Yellow)
-    st.write("#### 👑 Comeback King")
-    st.write("**Driver with highest podium finish score**")
-    
-
-    # Speed Demon (Pink-Red)
-    st.write("#### 💨 Speed Demon")
-    st.write("**High headstart driver (≥7%) who still delivers 20+ points**")
-    
-    # Dark Horse (Dark Blue)
-    st.write("#### 🐎 Dark Horse")
-    st.write("**Surprising performer with low expectations (≤3% headstart)**")
-    
-    # Veteran Excellence (Purple)
-    st.write("#### 🎖️ Veteran Excellence")
-    st.write("**Consistent top performer (2nd-6th place in championship)**")
-    
-
-    # Lucky Charm (Cyan)
-    st.write("#### 🍀 Lucky Charm")
-    st.write("**Driver with 15+ points, 0 wins, and ≤1 podium**")
-
-    # Perfect Storm (Pink)
-    st.write("#### ⛈️ Perfect Storm")
-    st.write("**Team with both drivers scoring 20+ points and 60+ team total**")
-
-    # Overachiever (Light Blue)
-    st.write("#### 🚀 Overachiever")
-    st.write("**Best points-to-headstart percentage ratio**")
-
-    # Breakthrough Driver (Red-Orange)
-    st.write("#### 💥 Breakthrough Driver")
-    st.write("**First unique race winner of the season**")
-
-    # Team Harmony (Orange)
-    st.write("#### 🎵 Team Harmony")
-    st.write("**Team with most balanced driver point distribution**")
-
-    # Championship Contender (Purple)
-    st.write("#### 🏁 Championship Contender")
-    st.write("**Top 5 driver with 25+ points and 2+ podiums**")
-
-#     New Awards Added:
-
-# Mr. Reliable (Green) - Consistent points without wins
-# Rising Star (Orange) - Best performing rookie/newcomer
-# Giant Killer (Red) - Beats favored teammates
-# Comeback King (Yellow) - Strong podium performance
-# Speed Demon (Pink-Red) - High headstart performers
-# Dark Horse (Dark Blue) - Surprising low-expectation performers
-# Veteran Excellence (Purple) - Consistent top performers
-# Lucky Charm (Cyan) - Points without glory
-# Perfect Storm (Pink) - Teams with both drivers excelling
-# Overachiever (Light Blue) - Best points-to-headstart ratio
-# Breakthrough Driver (Red-Orange) - First unique winner
-# Team Harmony (Orange) - Most balanced teammate performance
-# Championship Contender (Purple) - Top championship potential
-
-
-
-
