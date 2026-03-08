@@ -1322,6 +1322,7 @@ with tab4:
         if constructor_chart_data:
             constr_df = pd.DataFrame(constructor_chart_data)
 
+            fig_constr = go.Figure()
             fig_constr.add_trace(go.Bar(
             name="Wins",
             x=constr_df["Team"],
@@ -1443,6 +1444,7 @@ with tab4:
         if driver_chart_data:
             drv_df = pd.DataFrame(driver_chart_data)
 
+            fig_drv = go.Figure()
             fig_drv.add_trace(go.Bar(
             name="Wins",
             x=drv_df["Driver"],
