@@ -312,8 +312,8 @@ teams_drivers = {
     "Haas": ["Oco", "Bea"],
     "McLaren": ["Nor", "Pia"],
     "Mercedes": ["Rus", "Ant"],
-    "Racing Bulls": ["Had", "Law"],
-    "Red Bull": ["Ver", "Tsu"],
+    "Racing Bulls": ["Law", "Lin"],
+    "Red Bull": ["Ver", "Had"],
     "Williams": ["Sai", "Alb"]
 }
 
