@@ -924,7 +924,7 @@ with tab2:
                 
                 race_columns = [col for col in df.columns if col.startswith('Race ')]
                 if race_columns:
-                    styled_df = df.style.applymap(style_position, subset=race_columns)
+                    styled_df = df.style.map(style_position, subset=race_columns)
                     table_height = len(df) * 35 + 50  # 22 rows * 35 + header
                     st.dataframe(styled_df, use_container_width=True, height=table_height)
                 else:
