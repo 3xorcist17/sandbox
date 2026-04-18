@@ -380,6 +380,7 @@ if 'driver_headstarts' not in st.session_state:
     st.session_state.driver_headstarts = {driver['driver']: 1 for driver in drivers}
 
 # Tab 1: Race & Results - UPDATED for 22 drivers
+# Tab 1: Race & Results - UPDATED with speed multiplier based on headstart
 with tab1:
     if st.button("🏁 Start Race"):
         st.session_state.progress_values = [0] * 22
@@ -418,6 +419,9 @@ with tab1:
             
             position_emoji = "🥇" if pos == 1 else "🥈" if pos == 2 else "🥉" if pos == 3 else f"P{pos}"
             
+            headstart = st.session_state.driver_headstarts.get(driver, 1)
+            speed_multiplier = 1 + (headstart / 10)
+            
             if is_finished:
                 status_text = "🏁 FINISHED"
                 status_subtext = "Race Complete"
@@ -425,7 +429,7 @@ with tab1:
                 animation_class = ""
             else:
                 status_text = f"{progress:.1f}%"
-                status_subtext = "Racing..."
+                status_subtext = f"Speed x{speed_multiplier:.1f}"
                 row_class = ""
                 animation_class = "racing-animation" if progress > 50 else ""
             
@@ -466,9 +470,13 @@ with tab1:
                any(value < 100 for value in st.session_state.progress_values) and 
                not st.session_state.race_finished):
             
-            for i in range(22):  # Updated to 22
+            for i in range(22):
                 if st.session_state.progress_values[i] < 100:
-                    increment = random.randint(0, 4)
+                    driver = drivers[i]['driver']
+                    headstart = st.session_state.driver_headstarts.get(driver, 1)
+                    speed_multiplier = 1 + (headstart / 10)
+                    base_increment = random.randint(0, 4)
+                    increment = base_increment * speed_multiplier
                     st.session_state.progress_values[i] = min(100, st.session_state.progress_values[i] + increment)
                     if st.session_state.progress_values[i] == 100 and drivers[i]['driver'] not in [d['driver'] for d in st.session_state.finish_order]:
                         st.session_state.finish_order.append(drivers[i])
@@ -497,6 +505,9 @@ with tab1:
                     
                     position_emoji = "🥇" if pos == 1 else "🥈" if pos == 2 else "🥉" if pos == 3 else f"P{pos}"
                     
+                    headstart = st.session_state.driver_headstarts.get(driver, 1)
+                    speed_multiplier = 1 + (headstart / 10)
+                    
                     if is_finished:
                         status_text = "🏁 FINISHED"
                         status_subtext = "Race Complete"
@@ -504,7 +515,7 @@ with tab1:
                         animation_class = ""
                     else:
                         status_text = f"{progress:.1f}%"
-                        status_subtext = "Racing..."
+                        status_subtext = f"Speed x{speed_multiplier:.1f}"
                         row_class = ""
                         animation_class = "racing-animation" if progress > 70 else ""
                     
@@ -535,7 +546,7 @@ with tab1:
                     
                     placeholder.markdown(progress_html, unsafe_allow_html=True)
             
-            if len(st.session_state.finish_order) == 22:  # Updated to 22
+            if len(st.session_state.finish_order) == 22:
                 st.session_state.race_finished = True
                 st.session_state.races_completed += 1
                 st.session_state.race_started = False
@@ -630,13 +641,15 @@ with tab1:
                 total_points = st.session_state.total_driver_points[driver_name]
                 total_wins = st.session_state.driver_wins[driver_name]
                 total_podiums = st.session_state.driver_podiums[driver_name]
+                headstart = st.session_state.driver_headstarts.get(driver_name, 1)
+                speed_multiplier = 1 + (headstart / 10)
                 
                 st.markdown(f'''
                 <div class="rating-card {card_class}">
                     <div class="rating-header">
                         <div>
                             <div class="driver-name">{medal} {position_text} - {driver_name}</div>
-                            <div class="team-name">{team_name}</div>
+                            <div class="team-name">{team_name} • Speed x{speed_multiplier:.1f}</div>
                         </div>
                         <div class="rating-score">{points} pts</div>
                     </div>
@@ -1577,18 +1590,18 @@ with tab4:
 
 
 # Tab 5: Driver Upgrades
-# Tab 5: Driver Upgrades
+# Tab 5: Driver Upgrades - UPDATED to reflect speed multiplier logic
 with tab5:
     st.markdown('<div class="race-container">', unsafe_allow_html=True)
     st.markdown("### 🛠️ Driver Performance Tuning Center")
-    st.markdown("Fine-tune each driver's starting advantage with interactive sliders. Higher values give drivers better race starts!")
+    st.markdown("Set each driver's speed multiplier. A setting of 1 = x1.1 speed, 5 = x1.5 speed, 9 = x1.9 speed!")
     
     # Quick preset buttons
     st.markdown("#### ⚡ Quick Presets")
     preset_col1, preset_col2, preset_col3, preset_col4 = st.columns(4)
     
     with preset_col1:
-        if st.button("🟰 Equal Field (All 5%)", use_container_width=True):
+        if st.button("🟰 Equal Field (All 5)", use_container_width=True):
             for driver_info in drivers:
                 st.session_state.driver_headstarts[driver_info['driver']] = 5
             st.rerun()
@@ -1600,13 +1613,13 @@ with tab5:
             st.rerun()
     
     with preset_col3:
-        if st.button("🔄 Reset to Default (All 1%)", use_container_width=True):
+        if st.button("🔄 Reset to Default (All 1)", use_container_width=True):
             for driver_info in drivers:
                 st.session_state.driver_headstarts[driver_info['driver']] = 1
             st.rerun()
     
     with preset_col4:
-        if st.button("⚡ Boost Mode (All 9%)", use_container_width=True):
+        if st.button("⚡ Boost Mode (All 9)", use_container_width=True):
             for driver_info in drivers:
                 st.session_state.driver_headstarts[driver_info['driver']] = 9
             st.rerun()
@@ -1631,25 +1644,27 @@ with tab5:
             
             for driver in team_drivers:
                 current_headstart = st.session_state.driver_headstarts.get(driver, 1)
+                speed_multiplier = 1 + (current_headstart / 10)
                 
                 slider_key = f"headstart_slider_{driver}_{team}"
                 
-                st.markdown(f"**{driver}** - Current: {current_headstart}%")
+                st.markdown(f"**{driver}** — Speed Multiplier: x{speed_multiplier:.1f}")
                 
                 new_headstart = st.slider(
-                    f"Performance Boost for {driver}",
+                    f"Speed setting for {driver}",
                     min_value=1,
                     max_value=9,
                     value=current_headstart,
                     step=1,
                     key=slider_key,
-                    help=f"Adjust {driver}'s starting advantage. Higher values = better race start!"
+                    help=f"1 = x1.1 speed, 5 = x1.5 speed, 9 = x1.9 speed"
                 )
                 
                 st.session_state.driver_headstarts[driver] = new_headstart
                 
+                new_multiplier = 1 + (new_headstart / 10)
                 progress_width = (new_headstart / 9) * 100
-                boost_level = "🟢 Conservative" if new_headstart <= 3 else "🟡 Moderate" if new_headstart <= 6 else "🔴 Aggressive"
+                boost_level = "🟢 Slow (x1.1–x1.3)" if new_headstart <= 3 else "🟡 Medium (x1.4–x1.6)" if new_headstart <= 6 else "🔴 Fast (x1.7–x1.9)"
                 
                 st.markdown(f'''
                 <div style="margin-bottom: 15px;">
@@ -1660,7 +1675,7 @@ with tab5:
                     <div style="background-color: #f0f0f0; border-radius: 15px; height: 20px; overflow: hidden; box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);">
                         <div style="background: linear-gradient(90deg, {driver_colors.get(driver, '#3498db')}, {driver_colors.get(driver, '#3498db')}80); height: 100%; width: {progress_width}%; border-radius: 15px; position: relative; transition: width 0.3s ease;">
                             <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 11px; font-weight: bold; color: #ffffff;">
-                                {new_headstart}% Boost
+                                x{new_multiplier:.1f} Speed
                             </div>
                         </div>
                     </div>
@@ -1670,75 +1685,79 @@ with tab5:
                 st.markdown("---")
     
     # Summary section
-    st.markdown("#### 📊 Performance Summary & Analysis")
+    st.markdown("#### 📊 Speed Multiplier Summary & Analysis")
     
     headstart_values = list(st.session_state.driver_headstarts.values())
-    avg_headstart = sum(headstart_values) / len(headstart_values)
-    max_headstart = max(headstart_values)
-    min_headstart = min(headstart_values)
+    multiplier_values = [1 + (h / 10) for h in headstart_values]
+    avg_multiplier = sum(multiplier_values) / len(multiplier_values)
+    max_multiplier = max(multiplier_values)
+    min_multiplier = min(multiplier_values)
+    multiplier_range = max_multiplier - min_multiplier
     
     summary_col1, summary_col2, summary_col3, summary_col4 = st.columns(4)
     
     with summary_col1:
         st.metric(
-            label="🎯 Average Boost",
-            value=f"{avg_headstart:.1f}%",
-            help="Average headstart across all 22 drivers"
+            label="🎯 Average Speed",
+            value=f"x{avg_multiplier:.2f}",
+            help="Average speed multiplier across all 22 drivers"
         )
     
     with summary_col2:
         st.metric(
-            label="⚡ Highest Boost",
-            value=f"{max_headstart}%",
-            help="Maximum headstart given to any driver"
+            label="⚡ Fastest Multiplier",
+            value=f"x{max_multiplier:.1f}",
+            help="Highest speed multiplier given to any driver"
         )
     
     with summary_col3:
         st.metric(
-            label="🐌 Lowest Boost",
-            value=f"{min_headstart}%",
-            help="Minimum headstart given to any driver"
+            label="🐌 Slowest Multiplier",
+            value=f"x{min_multiplier:.1f}",
+            help="Lowest speed multiplier given to any driver"
         )
     
     with summary_col4:
-        boost_range = max_headstart - min_headstart
         st.metric(
-            label="📈 Boost Range",
-            value=f"{boost_range}%",
-            help="Difference between highest and lowest headstart"
+            label="📈 Speed Range",
+            value=f"x{multiplier_range:.1f}",
+            help="Difference between fastest and slowest speed multiplier"
         )
     
     st.markdown("---")
 
-    # Boost distribution chart across all 22 drivers
-    st.markdown("#### 📊 Boost Distribution Chart")
+    # Speed multiplier distribution chart across all 22 drivers
+    st.markdown("#### 📊 Speed Multiplier Distribution Chart")
 
     boost_chart_data = []
-    for driver_info in drivers:  # All 22 drivers
+    for driver_info in drivers:
         driver = driver_info['driver']
         team = driver_info['team']
         headstart = st.session_state.driver_headstarts.get(driver, 1)
+        multiplier = 1 + (headstart / 10)
         boost_chart_data.append({
             "Driver": driver,
             "Team": team,
-            "Boost": headstart
+            "Multiplier": round(multiplier, 1),
+            "Setting": headstart
         })
 
-    boost_chart_data.sort(key=lambda x: x["Boost"], reverse=True)
+    boost_chart_data.sort(key=lambda x: x["Multiplier"], reverse=True)
     boost_df = pd.DataFrame(boost_chart_data)
 
     fig_boost = px.bar(
         boost_df,
         x="Driver",
-        y="Boost",
+        y="Multiplier",
         color="Team",
-        text="Boost",
+        text="Multiplier",
         color_discrete_map=team_colors,
-        title="Driver Performance Boost Settings",
-        labels={"Boost": "Boost %", "Driver": "Driver"}
+        title="Driver Speed Multiplier Settings",
+        labels={"Multiplier": "Speed Multiplier (x)", "Driver": "Driver"},
+        hover_data=["Setting"]
     )
     fig_boost.update_traces(
-        texttemplate="%{text}%",
+        texttemplate="x%{text:.1f}",
         textposition="outside",
         marker_line_width=2,
         marker_line_color="rgba(0,0,0,0.3)",
@@ -1753,28 +1772,29 @@ with tab5:
         },
         xaxis=dict(
             title="Driver",
-            tickangle=-45,  # Angled for 22 names
+            tickangle=-45,
             tickfont=dict(size=10, color='#2c3e50'),
             title_font=dict(size=14, color='#2c3e50')
         ),
         yaxis=dict(
-            title="Boost %",
-            range=[0, 11],
+            title="Speed Multiplier (x)",
+            range=[1.0, 2.1],
             gridcolor='rgba(128, 128, 128, 0.2)',
             tickfont=dict(size=11, color='#2c3e50'),
-            title_font=dict(size=14, color='#2c3e50')
+            title_font=dict(size=14, color='#2c3e50'),
+            tickformat=".1f"
         ),
         plot_bgcolor='rgba(248, 249, 250, 0.95)',
         paper_bgcolor='rgba(248, 249, 250, 0.95)',
         showlegend=False,
-        margin=dict(l=20, r=20, t=80, b=100)  # Extra bottom margin for 22 angled labels
+        margin=dict(l=20, r=20, t=80, b=100)
     )
     st.plotly_chart(fig_boost, use_container_width=True)
 
     st.markdown("---")
 
-    # Top boosted / most conservative split leaderboards
-    st.markdown("#### 🏆 Boost Rankings")
+    # Top fastest / slowest split leaderboards
+    st.markdown("#### 🏆 Speed Rankings")
 
     sorted_headstarts = sorted(
         [(driver, headstart, next(d['team'] for d in drivers if d['driver'] == driver))
@@ -1786,12 +1806,13 @@ with tab5:
     boost_col1, boost_col2 = st.columns(2)
     
     with boost_col1:
-        st.markdown("##### 🥇 Highest Performance Boosts")
+        st.markdown("##### 🥇 Fastest Drivers")
         st.markdown('<div class="leaderboard">', unsafe_allow_html=True)
-        for pos, (driver, headstart, team) in enumerate(sorted_headstarts[:11], 1):  # Top 11 of 22
+        for pos, (driver, headstart, team) in enumerate(sorted_headstarts[:11], 1):
             card_class = "position-1" if pos == 1 else "position-2" if pos == 2 else "position-3" if pos == 3 else ""
             medal = "🥇" if pos == 1 else "🥈" if pos == 2 else "🥉" if pos == 3 else f"{pos}."
-            boost_level = "🟢" if headstart <= 3 else "🟡" if headstart <= 6 else "🔴"
+            multiplier = 1 + (headstart / 10)
+            speed_label = "🟢" if headstart <= 3 else "🟡" if headstart <= 6 else "🔴"
             st.markdown(f'''
             <div class="leaderboard-item {card_class}">
                 <div style="display: flex; align-items: center;">
@@ -1801,17 +1822,18 @@ with tab5:
                         <div style="font-size: 11px; color: #000000; opacity: 0.7;">{team}</div>
                     </div>
                 </div>
-                <span>{boost_level} {headstart}% Boost</span>
+                <span>{speed_label} x{multiplier:.1f} Speed</span>
             </div>
             ''', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
     
     with boost_col2:
-        st.markdown("##### 🐌 Most Conservative Setups")
+        st.markdown("##### 🐌 Slowest Drivers")
         st.markdown('<div class="leaderboard">', unsafe_allow_html=True)
-        conservative_drivers = sorted_headstarts[-11:][::-1]  # Bottom 11 of 22, reversed
-        for pos, (driver, headstart, team) in enumerate(conservative_drivers, 1):
-            boost_level = "🟢" if headstart <= 3 else "🟡" if headstart <= 6 else "🔴"
+        slowest_drivers = sorted_headstarts[-11:][::-1]
+        for pos, (driver, headstart, team) in enumerate(slowest_drivers, 1):
+            multiplier = 1 + (headstart / 10)
+            speed_label = "🟢" if headstart <= 3 else "🟡" if headstart <= 6 else "🔴"
             st.markdown(f'''
             <div class="leaderboard-item">
                 <div style="display: flex; align-items: center;">
@@ -1821,42 +1843,46 @@ with tab5:
                         <div style="font-size: 11px; color: #000000; opacity: 0.7;">{team}</div>
                     </div>
                 </div>
-                <span>{boost_level} {headstart}% Boost</span>
+                <span>{speed_label} x{multiplier:.1f} Speed</span>
             </div>
             ''', unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
 
     st.markdown("---")
 
-    # Team average boost analysis
-    st.markdown("#### 🏗️ Team Boost Analysis")
+    # Team average speed multiplier analysis
+    st.markdown("#### 🏗️ Team Speed Analysis")
 
     team_boost_data = []
-    for team, team_drivers in teams_drivers.items():  # All 11 teams
+    for team, team_drivers in teams_drivers.items():
         driver1, driver2 = team_drivers
-        d1_boost = st.session_state.driver_headstarts.get(driver1, 1)
-        d2_boost = st.session_state.driver_headstarts.get(driver2, 1)
-        avg_boost = (d1_boost + d2_boost) / 2
-        balance_gap = abs(d1_boost - d2_boost)
+        d1_setting = st.session_state.driver_headstarts.get(driver1, 1)
+        d2_setting = st.session_state.driver_headstarts.get(driver2, 1)
+        d1_multiplier = 1 + (d1_setting / 10)
+        d2_multiplier = 1 + (d2_setting / 10)
+        avg_multiplier = (d1_multiplier + d2_multiplier) / 2
+        balance_gap = abs(d1_multiplier - d2_multiplier)
         team_boost_data.append({
             "Team": team,
-            "Avg Boost": avg_boost,
+            "Avg Multiplier": avg_multiplier,
             "Balance Gap": balance_gap,
-            driver1: d1_boost,
-            driver2: d2_boost
+            driver1: d1_multiplier,
+            driver2: d2_multiplier,
+            f"{driver1}_setting": d1_setting,
+            f"{driver2}_setting": d2_setting
         })
 
-    team_boost_data.sort(key=lambda x: x["Avg Boost"], reverse=True)
+    team_boost_data.sort(key=lambda x: x["Avg Multiplier"], reverse=True)
 
     st.markdown('<div class="leaderboard">', unsafe_allow_html=True)
     for pos, tb in enumerate(team_boost_data, 1):
         team = tb["Team"]
         driver1, driver2 = teams_drivers[team]
-        d1_boost = tb[driver1]
-        d2_boost = tb[driver2]
-        avg = tb["Avg Boost"]
+        d1_mult = tb[driver1]
+        d2_mult = tb[driver2]
+        avg = tb["Avg Multiplier"]
         gap = tb["Balance Gap"]
-        balance_label = "⚖️ Balanced" if gap == 0 else "📊 Close" if gap <= 2 else "📈 Uneven"
+        balance_label = "⚖️ Balanced" if gap == 0 else "📊 Close" if gap <= 0.2 else "📈 Uneven"
         card_class = "position-1" if pos == 1 else "position-2" if pos == 2 else "position-3" if pos == 3 else ""
         position_icon = "🥇" if pos == 1 else "🥈" if pos == 2 else "🥉" if pos == 3 else f"P{pos}"
         st.markdown(f'''
@@ -1865,11 +1891,11 @@ with tab5:
                 <span style="margin-right: 10px; font-weight: bold;">{position_icon}</span>
                 <div>
                     <div style="font-weight: bold; color: #000000;">{team}</div>
-                    <div style="font-size: 11px; color: #000000; opacity: 0.7;">{driver1}: {d1_boost}% | {driver2}: {d2_boost}%</div>
+                    <div style="font-size: 11px; color: #000000; opacity: 0.7;">{driver1}: x{d1_mult:.1f} | {driver2}: x{d2_mult:.1f}</div>
                 </div>
             </div>
             <div style="display: flex; gap: 12px; align-items: center;">
-                <span style="font-weight: bold; color: #000000;">{avg:.1f}% avg</span>
+                <span style="font-weight: bold; color: #000000;">x{avg:.2f} avg</span>
                 <span style="font-size: 11px; color: #000000;">{balance_label}</span>
             </div>
         </div>
@@ -1886,12 +1912,12 @@ with tab5:
         <div class="rating-card" style="background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%); color: #000000;">
             <div class="rating-header">
                 <div>
-                    <div class="driver-name">🟢 Conservative (1-3%)</div>
-                    <div class="team-name">Realistic Racing</div>
+                    <div class="driver-name">🟢 Slow (Setting 1–3)</div>
+                    <div class="team-name">x1.1 – x1.3 Speed</div>
                 </div>
             </div>
             <div style="font-size: 13px; line-height: 1.4; margin-top: 10px; color: #000000;">
-                • Minimal advantage<br>
+                • Minimal speed advantage<br>
                 • Pure skill-based racing<br>
                 • Unpredictable outcomes<br>
                 • Great for close competition
@@ -1904,12 +1930,12 @@ with tab5:
         <div class="rating-card" style="background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%); color: #000000;">
             <div class="rating-header">
                 <div>
-                    <div class="driver-name">🟡 Moderate (4-6%)</div>
-                    <div class="team-name">Balanced Approach</div>
+                    <div class="driver-name">🟡 Medium (Setting 4–6)</div>
+                    <div class="team-name">x1.4 – x1.6 Speed</div>
                 </div>
             </div>
             <div style="font-size: 13px; line-height: 1.4; margin-top: 10px; color: #000000;">
-                • Noticeable but fair advantage<br>
+                • Noticeable speed edge<br>
                 • Rewards driver favorites<br>
                 • Still allows comebacks<br>
                 • Good for storylines
@@ -1922,12 +1948,12 @@ with tab5:
         <div class="rating-card" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: #000000;">
             <div class="rating-header">
                 <div>
-                    <div class="driver-name">🔴 Aggressive (7-9%)</div>
-                    <div class="team-name">Dominant Performance</div>
+                    <div class="driver-name">🔴 Fast (Setting 7–9)</div>
+                    <div class="team-name">x1.7 – x1.9 Speed</div>
                 </div>
             </div>
             <div style="font-size: 13px; line-height: 1.4; margin-top: 10px; color: #000000;">
-                • Significant head start<br>
+                • Dominant speed advantage<br>
                 • Favors top drivers heavily<br>
                 • More predictable results<br>
                 • Creates clear favorites
@@ -1937,7 +1963,6 @@ with tab5:
     
     st.markdown('</div>', unsafe_allow_html=True)
 
-# Tab 6: Season Summary - Enhanced with More Awards
 # Tab 6: Season Summary
 with tab6:
     st.markdown('<div class="race-container">', unsafe_allow_html=True)
