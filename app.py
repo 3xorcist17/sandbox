@@ -377,15 +377,21 @@ with tab1:
         st.markdown('<div class="race-container">', unsafe_allow_html=True)
         st.markdown("### 🏎️ Live Race Progress")
 
+        # ── DNF panel placeholder — sits at the very top, hidden until first DNF ──
+        dnf_panel_placeholder = st.empty()
+
+        st.markdown("#### 🏁 Running Order")
+
+        # One placeholder per driver (22 total) — only racing/finished drivers here
         progress_placeholders = []
         current_leaderboard = get_current_leaderboard()
 
+        # Initial render: all drivers are racing at this point (no DNFs triggered yet)
         for pos, driver_info in enumerate(current_leaderboard, 1):
             progress = driver_info['progress']
             driver = driver_info['driver']
             team = driver_info['team']
             is_finished = driver_info.get('finished', False)
-            is_dnf = driver_info.get('dnf', False)
 
             base_color = driver_colors.get(driver, '#3498db')
             if base_color.startswith('hsl'):
@@ -398,86 +404,29 @@ with tab1:
             else:
                 light_color = base_color
 
-            if is_dnf:
-                position_emoji = "💥"
-                status_text = "💥 RETIRED"
-                status_subtext = "Mechanical Failure"
-                row_class = "finished-row dnf-row"
-                animation_class = ""
-                dnf_progress = driver_info.get('progress', 0)
-                progress_html = f'''
-                <div class="driver-row {row_class}"
-                     style="--driver-color: #cc0000; --driver-color-light: #ff4444;">
-                    <div class="position-indicator">{position_emoji}</div>
-                    <div class="driver-info">
-                        <div class="driver-name" style="color:#cc0000;">{driver}</div>
-                        <div class="team-name">{team}</div>
-                    </div>
-                    <div class="progress-container">
-                        <div class="custom-progress-bar">
-                            <div class="progress-fill" style="width: {dnf_progress}%; background: linear-gradient(90deg, #cc0000, #ff4444);">
-                            </div>
-                            <div class="progress-text">DNF @ {dnf_progress}%</div>
+            position_emoji = "🥇" if pos == 1 else "🥈" if pos == 2 else "🥉" if pos == 3 else f"P{pos}"
+            speed_kmh = int(200 + (progress / 100) * 150 + (pos * -5))
+            progress_html = f'''
+            <div class="driver-row"
+                 style="--driver-color: {base_color}; --driver-color-light: {light_color};">
+                <div class="position-indicator">{position_emoji}</div>
+                <div class="driver-info">
+                    <div class="driver-name">{driver}</div>
+                    <div class="team-name">{team}</div>
+                </div>
+                <div class="progress-container">
+                    <div class="custom-progress-bar">
+                        <div class="progress-fill" style="width: {progress}%;">
+                            <div class="speed-indicator">{speed_kmh} km/h</div>
                         </div>
+                        <div class="progress-text">{progress:.1f}%</div>
                     </div>
-                    <div class="progress-status">
-                        <div class="status-text" style="color:#cc0000;">{status_text}</div>
-                        <div class="status-subtext">{status_subtext}</div>
-                    </div>
-                </div>'''
-            elif is_finished:
-                position_emoji = "🥇" if pos == 1 else "🥈" if pos == 2 else "🥉" if pos == 3 else f"P{pos}"
-                status_text = "🏁 FINISHED"
-                status_subtext = "Race Complete"
-                row_class = "finished-row"
-                animation_class = ""
-                progress_html = f'''
-                <div class="driver-row {row_class} {animation_class}"
-                     style="--driver-color: {base_color}; --driver-color-light: {light_color};">
-                    <div class="position-indicator">{position_emoji}</div>
-                    <div class="driver-info">
-                        <div class="driver-name">{driver}</div>
-                        <div class="team-name">{team}</div>
-                    </div>
-                    <div class="progress-container">
-                        <div class="custom-progress-bar">
-                            <div class="progress-fill" style="width: 100%;"></div>
-                            <div class="progress-text">100%</div>
-                        </div>
-                    </div>
-                    <div class="progress-status">
-                        <div class="status-text">{status_text}</div>
-                        <div class="status-subtext">{status_subtext}</div>
-                    </div>
-                </div>'''
-            else:
-                position_emoji = "🥇" if pos == 1 else "🥈" if pos == 2 else "🥉" if pos == 3 else f"P{pos}"
-                status_text = f"{progress:.1f}%"
-                status_subtext = "Racing..."
-                row_class = ""
-                animation_class = "racing-animation" if progress > 50 else ""
-                speed_kmh = int(200 + (progress / 100) * 150 + (pos * -5))
-                progress_html = f'''
-                <div class="driver-row {row_class} {animation_class}"
-                     style="--driver-color: {base_color}; --driver-color-light: {light_color};">
-                    <div class="position-indicator">{position_emoji}</div>
-                    <div class="driver-info">
-                        <div class="driver-name">{driver}</div>
-                        <div class="team-name">{team}</div>
-                    </div>
-                    <div class="progress-container">
-                        <div class="custom-progress-bar">
-                            <div class="progress-fill" style="width: {progress}%;">
-                                <div class="speed-indicator">{speed_kmh} km/h</div>
-                            </div>
-                            <div class="progress-text">{progress:.1f}%</div>
-                        </div>
-                    </div>
-                    <div class="progress-status">
-                        <div class="status-text">{status_text}</div>
-                        <div class="status-subtext">{status_subtext}</div>
-                    </div>
-                </div>'''
+                </div>
+                <div class="progress-status">
+                    <div class="status-text">{progress:.1f}%</div>
+                    <div class="status-subtext">Racing...</div>
+                </div>
+            </div>'''
 
             placeholder = st.empty()
             placeholder.markdown(progress_html, unsafe_allow_html=True)
@@ -486,11 +435,50 @@ with tab1:
         st.markdown('</div>', unsafe_allow_html=True)
         time.sleep(1)
 
+        def build_dnf_panel(retired_drivers):
+            """Build the HTML for the DNF panel shown above the race."""
+            if not retired_drivers:
+                return ""
+            rows_html = ""
+            for rd in retired_drivers:
+                drv = rd['driver']
+                tm = rd['team']
+                dnf_at = rd.get('progress', 0)
+                rows_html += f'''
+                <div style="display:flex; align-items:center; gap:14px;
+                            background:rgba(180,0,0,0.08); border-radius:8px;
+                            padding:8px 14px; margin:4px 0;
+                            border-left:4px solid #cc0000;">
+                    <span style="font-size:20px;">💥</span>
+                    <div style="flex:1;">
+                        <span style="font-weight:bold; color:#cc0000; font-size:14px;">{drv}</span>
+                        <span style="color:#555; font-size:12px; margin-left:8px;">{tm}</span>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-weight:bold; color:#cc0000; font-size:13px;">RETIRED</div>
+                        <div style="font-size:11px; color:#777;">Mechanical failure @ {dnf_at}%</div>
+                    </div>
+                </div>'''
+            return f'''
+            <div style="background:rgba(204,0,0,0.07); border:2px solid #cc0000;
+                        border-radius:12px; padding:14px 16px; margin-bottom:16px;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                    <span style="font-size:18px;">🚨</span>
+                    <strong style="color:#cc0000; font-size:15px;">
+                        RETIREMENTS — {len(retired_drivers)} driver{'s' if len(retired_drivers)>1 else ''} out
+                    </strong>
+                </div>
+                {rows_html}
+            </div>'''
+
         dnf_driver_names = {d['driver'] for d in st.session_state.current_race_dnfs}
         dnf_retire_points = {d['driver']: d.get('dnf_progress', 0) for d in st.session_state.current_race_dnfs}
         # Drivers who will complete the full race (no DNF)
         full_race_drivers = [d['driver'] for d in drivers if d['driver'] not in dnf_driver_names]
         active_drivers_count = len(full_race_drivers)
+
+        # Track which DNF drivers have actually retired yet (revealed mid-race)
+        revealed_dnfs = []  # list of driver dicts with progress info
 
         while (st.session_state.race_started and
                any(st.session_state.progress_values[i] < 100
@@ -500,7 +488,6 @@ with tab1:
             for i in range(22):
                 drv_name = drivers[i]['driver']
                 if drv_name in dnf_driver_names:
-                    # Animate DNF drivers up to their retirement point then stop
                     retire_at = dnf_retire_points.get(drv_name, 0)
                     if st.session_state.progress_values[i] < retire_at:
                         st.session_state.progress_values[i] = min(retire_at,
@@ -513,99 +500,106 @@ with tab1:
                             drv_name not in [d['driver'] for d in st.session_state.finish_order]):
                         st.session_state.finish_order.append(drivers[i])
 
+            # Check for newly retired drivers this tick
+            for i in range(22):
+                drv_name = drivers[i]['driver']
+                if drv_name in dnf_driver_names:
+                    retire_at = dnf_retire_points.get(drv_name, 0)
+                    already_revealed = any(r['driver'] == drv_name for r in revealed_dnfs)
+                    if (not already_revealed and
+                            st.session_state.progress_values[i] >= retire_at):
+                        revealed_dnfs.append({
+                            'driver': drv_name,
+                            'team': drivers[i]['team'],
+                            'progress': retire_at
+                        })
+
+            # Update DNF panel at the top
+            if revealed_dnfs:
+                dnf_panel_placeholder.markdown(
+                    build_dnf_panel(revealed_dnfs), unsafe_allow_html=True)
+
             current_leaderboard = get_current_leaderboard()
 
+            # Build a set of currently revealed DNF driver names for row hiding
+            revealed_dnf_names = {r['driver'] for r in revealed_dnfs}
+
             for idx, (placeholder, _) in enumerate(progress_placeholders):
-                if idx < len(current_leaderboard):
-                    driver_info = current_leaderboard[idx]
-                    pos = idx + 1
-                    progress = driver_info['progress']
-                    driver = driver_info['driver']
-                    team = driver_info['team']
-                    is_finished = driver_info.get('finished', False)
-                    is_dnf = driver_info.get('dnf', False)
+                if idx >= len(current_leaderboard):
+                    continue
+                driver_info = current_leaderboard[idx]
+                pos = idx + 1
+                progress = driver_info['progress']
+                driver = driver_info['driver']
+                team = driver_info['team']
+                is_finished = driver_info.get('finished', False)
+                is_dnf = driver_info.get('dnf', False)
 
-                    base_color = driver_colors.get(driver, '#3498db')
-                    if base_color.startswith('hsl'):
-                        hsl_parts = base_color.replace('hsl(', '').replace(')', '').split(',')
-                        hue = hsl_parts[0].strip()
-                        saturation = hsl_parts[1].strip()
-                        lightness = float(hsl_parts[2].replace('%', '').strip())
-                        lighter_lightness = min(95, lightness + 20)
-                        light_color = f"hsl({hue}, {saturation}, {lighter_lightness}%)"
-                    else:
-                        light_color = base_color
+                # If this driver has revealed their DNF, blank out their racing row
+                if driver in revealed_dnf_names:
+                    placeholder.empty()
+                    continue
 
-                    if is_dnf:
-                        dnf_progress = driver_info.get('progress', 0)
-                        progress_html = f'''
-                        <div class="driver-row finished-row dnf-row"
-                             style="--driver-color: #cc0000; --driver-color-light: #ff4444;">
-                            <div class="position-indicator">💥</div>
-                            <div class="driver-info">
-                                <div class="driver-name" style="color:#cc0000;">{driver}</div>
-                                <div class="team-name">{team}</div>
-                            </div>
-                            <div class="progress-container">
-                                <div class="custom-progress-bar">
-                                    <div class="progress-fill" style="width: {dnf_progress}%; background: linear-gradient(90deg, #cc0000, #ff4444);"></div>
-                                    <div class="progress-text">DNF @ {dnf_progress}%</div>
-                                </div>
-                            </div>
-                            <div class="progress-status">
-                                <div class="status-text" style="color:#cc0000;">💥 RETIRED</div>
-                                <div class="status-subtext">Mechanical Failure</div>
-                            </div>
-                        </div>'''
-                    elif is_finished:
-                        points_earned = points_system.get(pos, 0)
-                        position_emoji = "🥇" if pos == 1 else "🥈" if pos == 2 else "🥉" if pos == 3 else f"P{pos}"
-                        progress_html = f'''
-                        <div class="driver-row finished-row"
-                             style="--driver-color: {base_color}; --driver-color-light: {light_color};">
-                            <div class="position-indicator">{position_emoji}</div>
-                            <div class="driver-info">
-                                <div class="driver-name">{driver}</div>
-                                <div class="team-name">{team}</div>
-                            </div>
-                            <div class="progress-container">
-                                <div class="custom-progress-bar">
-                                    <div class="progress-fill" style="width: 100%;"></div>
-                                    <div class="progress-text">100%</div>
-                                </div>
-                            </div>
-                            <div class="progress-status">
-                                <div class="status-text">🏁 FINISHED</div>
-                                <div class="status-subtext">{points_earned} pts</div>
-                            </div>
-                        </div>'''
-                    else:
-                        position_emoji = f"P{pos}"
-                        speed_kmh = int(max(180, min(350, 200 + (progress / 100) * 150 + (pos * -3) + random.randint(-10, 10))))
-                        animation_class = "racing-animation" if progress > 70 else ""
-                        progress_html = f'''
-                        <div class="driver-row {animation_class}"
-                             style="--driver-color: {base_color}; --driver-color-light: {light_color};">
-                            <div class="position-indicator">{position_emoji}</div>
-                            <div class="driver-info">
-                                <div class="driver-name">{driver}</div>
-                                <div class="team-name">{team}</div>
-                            </div>
-                            <div class="progress-container">
-                                <div class="custom-progress-bar">
-                                    <div class="progress-fill" style="width: {progress}%;">
-                                        <div class="speed-indicator">{speed_kmh} km/h</div>
-                                    </div>
-                                    <div class="progress-text">{progress:.1f}%</div>
-                                </div>
-                            </div>
-                            <div class="progress-status">
-                                <div class="status-text">{progress:.1f}%</div>
-                                <div class="status-subtext">Racing...</div>
-                            </div>
-                        </div>'''
+                base_color = driver_colors.get(driver, '#3498db')
+                if base_color.startswith('hsl'):
+                    hsl_parts = base_color.replace('hsl(', '').replace(')', '').split(',')
+                    hue = hsl_parts[0].strip()
+                    saturation = hsl_parts[1].strip()
+                    lightness = float(hsl_parts[2].replace('%', '').strip())
+                    lighter_lightness = min(95, lightness + 20)
+                    light_color = f"hsl({hue}, {saturation}, {lighter_lightness}%)"
+                else:
+                    light_color = base_color
 
-                    placeholder.markdown(progress_html, unsafe_allow_html=True)
+                if is_finished:
+                    points_earned = points_system.get(pos, 0)
+                    position_emoji = "🥇" if pos == 1 else "🥈" if pos == 2 else "🥉" if pos == 3 else f"P{pos}"
+                    progress_html = f'''
+                    <div class="driver-row finished-row"
+                         style="--driver-color: {base_color}; --driver-color-light: {light_color};">
+                        <div class="position-indicator">{position_emoji}</div>
+                        <div class="driver-info">
+                            <div class="driver-name">{driver}</div>
+                            <div class="team-name">{team}</div>
+                        </div>
+                        <div class="progress-container">
+                            <div class="custom-progress-bar">
+                                <div class="progress-fill" style="width: 100%;"></div>
+                                <div class="progress-text">100%</div>
+                            </div>
+                        </div>
+                        <div class="progress-status">
+                            <div class="status-text">🏁 FINISHED</div>
+                            <div class="status-subtext">{points_earned} pts</div>
+                        </div>
+                    </div>'''
+                else:
+                    position_emoji = f"P{pos}"
+                    speed_kmh = int(max(180, min(350, 200 + (progress / 100) * 150 + (pos * -3) + random.randint(-10, 10))))
+                    animation_class = "racing-animation" if progress > 70 else ""
+                    progress_html = f'''
+                    <div class="driver-row {animation_class}"
+                         style="--driver-color: {base_color}; --driver-color-light: {light_color};">
+                        <div class="position-indicator">{position_emoji}</div>
+                        <div class="driver-info">
+                            <div class="driver-name">{driver}</div>
+                            <div class="team-name">{team}</div>
+                        </div>
+                        <div class="progress-container">
+                            <div class="custom-progress-bar">
+                                <div class="progress-fill" style="width: {progress}%;">
+                                    <div class="speed-indicator">{speed_kmh} km/h</div>
+                                </div>
+                                <div class="progress-text">{progress:.1f}%</div>
+                            </div>
+                        </div>
+                        <div class="progress-status">
+                            <div class="status-text">{progress:.1f}%</div>
+                            <div class="status-subtext">Racing...</div>
+                        </div>
+                    </div>'''
+
+                placeholder.markdown(progress_html, unsafe_allow_html=True)
 
             # Race ends when all non-DNF drivers finish
             finished_non_dnf = [d for d in st.session_state.finish_order if d['driver'] not in dnf_driver_names]
