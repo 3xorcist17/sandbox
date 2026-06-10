@@ -256,6 +256,29 @@ st.markdown("""
         font-size: 11px; font-weight: bold; color: #000;
         transition: width 0.6s ease;
     }
+    .dnf-panel {
+        background: rgba(204,0,0,0.07);
+        border: 2px solid #cc0000;
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-bottom: 16px;
+    }
+    .dnf-panel-header {
+        display: flex; align-items: center; gap: 8px;
+        margin-bottom: 10px; font-size: 15px;
+        font-weight: bold; color: #cc0000;
+    }
+    .dnf-panel-row {
+        display: flex; align-items: center; gap: 14px;
+        background: rgba(180,0,0,0.08); border-radius: 8px;
+        padding: 8px 14px; margin: 4px 0;
+        border-left: 4px solid #cc0000;
+    }
+    .dnf-panel-name { font-weight: bold; color: #cc0000; font-size: 14px; }
+    .dnf-panel-team { color: #555; font-size: 12px; margin-left: 8px; }
+    .dnf-panel-status { text-align: right; margin-left: auto; }
+    .dnf-panel-retired { font-weight: bold; color: #cc0000; font-size: 13px; }
+    .dnf-panel-detail { font-size: 11px; color: #777; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -377,8 +400,9 @@ with tab1:
         st.markdown('<div class="race-container">', unsafe_allow_html=True)
         st.markdown("### 🏎️ Live Race Progress")
 
-        # ── DNF panel placeholder — sits at the very top, hidden until first DNF ──
+        # ── DNF panel placeholder — seeded with invisible div so Streamlit treats it as HTML ──
         dnf_panel_placeholder = st.empty()
+        dnf_panel_placeholder.markdown('<div style="height:0;overflow:hidden;"></div>', unsafe_allow_html=True)
 
         st.markdown("#### 🏁 Running Order")
 
@@ -436,40 +460,18 @@ with tab1:
         time.sleep(1)
 
         def build_dnf_panel(retired_drivers):
-            """Build the HTML for the DNF panel shown above the race."""
+            """Build single-line HTML for DNF panel — avoids Streamlit st.empty multiline stripping."""
             if not retired_drivers:
                 return ""
-            rows_html = ""
+            rows = []
             for rd in retired_drivers:
-                drv = rd['driver']
-                tm = rd['team']
-                dnf_at = rd.get('progress', 0)
-                rows_html += f'''
-                <div style="display:flex; align-items:center; gap:14px;
-                            background:rgba(180,0,0,0.08); border-radius:8px;
-                            padding:8px 14px; margin:4px 0;
-                            border-left:4px solid #cc0000;">
-                    <span style="font-size:20px;">💥</span>
-                    <div style="flex:1;">
-                        <span style="font-weight:bold; color:#cc0000; font-size:14px;">{drv}</span>
-                        <span style="color:#555; font-size:12px; margin-left:8px;">{tm}</span>
-                    </div>
-                    <div style="text-align:right;">
-                        <div style="font-weight:bold; color:#cc0000; font-size:13px;">RETIRED</div>
-                        <div style="font-size:11px; color:#777;">Mechanical failure @ {dnf_at}%</div>
-                    </div>
-                </div>'''
-            return f'''
-            <div style="background:rgba(204,0,0,0.07); border:2px solid #cc0000;
-                        border-radius:12px; padding:14px 16px; margin-bottom:16px;">
-                <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
-                    <span style="font-size:18px;">🚨</span>
-                    <strong style="color:#cc0000; font-size:15px;">
-                        RETIREMENTS — {len(retired_drivers)} driver{'s' if len(retired_drivers)>1 else ''} out
-                    </strong>
-                </div>
-                {rows_html}
-            </div>'''
+                drv = rd["driver"]
+                tm = rd["team"]
+                dnf_at = rd.get("progress", 0)
+                rows.append(f'<div class="dnf-panel-row"><span>💥</span><div><span class="dnf-panel-name">{drv}</span><span class="dnf-panel-team">{tm}</span></div><div class="dnf-panel-status"><div class="dnf-panel-retired">RETIRED</div><div class="dnf-panel-detail">Mechanical failure @ {dnf_at}%</div></div></div>')
+            label = "drivers" if len(retired_drivers) > 1 else "driver"
+            header = f'<div class="dnf-panel-header">🚨 RETIREMENTS — {len(retired_drivers)} {label} out</div>'
+            return f'<div class="dnf-panel">{header}{"".join(rows)}</div>'
 
         dnf_driver_names = {d['driver'] for d in st.session_state.current_race_dnfs}
         dnf_retire_points = {d['driver']: d.get('dnf_progress', 0) for d in st.session_state.current_race_dnfs}
@@ -516,8 +518,7 @@ with tab1:
 
             # Update DNF panel at the top
             if revealed_dnfs:
-                dnf_panel_placeholder.markdown(
-                    build_dnf_panel(revealed_dnfs), unsafe_allow_html=True)
+                dnf_panel_placeholder.markdown(build_dnf_panel(revealed_dnfs), unsafe_allow_html=True)
 
             current_leaderboard = get_current_leaderboard()
 
