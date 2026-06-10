@@ -46,25 +46,47 @@ def get_current_leaderboard():
             'dnf': False
         })
 
+    finished_driver_names = [d['driver'] for d in st.session_state.finish_order]
+
+    # Build a lookup of DNF retire points
+    dnf_retire_map = {}
     if 'current_race_dnfs' in st.session_state:
         for driver_info in st.session_state.current_race_dnfs:
-            dnf_drivers.append({
-                'driver': driver_info['driver'],
-                'team': driver_info['team'],
-                'progress': driver_info.get('dnf_progress', 0),
-                'finished': True,
-                'dnf': True
-            })
-
-    finished_driver_names = [d['driver'] for d in st.session_state.finish_order]
-    dnf_driver_names = [d['driver'] for d in st.session_state.get('current_race_dnfs', [])]
+            dnf_retire_map[driver_info['driver']] = driver_info.get('dnf_progress', 0)
 
     for i, driver_info in enumerate(drivers):
-        if driver_info['driver'] not in finished_driver_names and driver_info['driver'] not in dnf_driver_names:
+        drv = driver_info['driver']
+        if drv in finished_driver_names:
+            continue  # already in finished_drivers list above
+
+        current_progress = st.session_state.progress_values[i]
+        retire_at = dnf_retire_map.get(drv)
+
+        if retire_at is not None:
+            if current_progress >= retire_at:
+                # Driver has reached their retirement point — show as DNF
+                dnf_drivers.append({
+                    'driver': drv,
+                    'team': driver_info['team'],
+                    'progress': retire_at,
+                    'finished': True,
+                    'dnf': True
+                })
+            else:
+                # Still racing toward their retirement point — looks normal
+                racing_drivers.append({
+                    'driver': drv,
+                    'team': driver_info['team'],
+                    'progress': current_progress,
+                    'finished': False,
+                    'dnf': False,
+                    'index': i
+                })
+        else:
             racing_drivers.append({
-                'driver': driver_info['driver'],
+                'driver': drv,
                 'team': driver_info['team'],
-                'progress': st.session_state.progress_values[i],
+                'progress': current_progress,
                 'finished': False,
                 'dnf': False,
                 'index': i
@@ -352,18 +374,11 @@ with tab1:
         st.rerun()
 
     if st.session_state.race_started and not st.session_state.race_finished:
-        # Show DNF warning if any
-        if st.session_state.current_race_dnfs:
-            dnf_names = ", ".join([d['driver'] for d in st.session_state.current_race_dnfs])
-            st.error(f"💥 **Mechanical Failures This Race:** {dnf_names} — These drivers will retire!")
-
         st.markdown('<div class="race-container">', unsafe_allow_html=True)
         st.markdown("### 🏎️ Live Race Progress")
 
         progress_placeholders = []
         current_leaderboard = get_current_leaderboard()
-
-        dnf_names_set = {d['driver'] for d in st.session_state.current_race_dnfs}
 
         for pos, driver_info in enumerate(current_leaderboard, 1):
             progress = driver_info['progress']
@@ -473,11 +488,13 @@ with tab1:
 
         dnf_driver_names = {d['driver'] for d in st.session_state.current_race_dnfs}
         dnf_retire_points = {d['driver']: d.get('dnf_progress', 0) for d in st.session_state.current_race_dnfs}
-        active_drivers_count = 22 - len(dnf_driver_names)
+        # Drivers who will complete the full race (no DNF)
+        full_race_drivers = [d['driver'] for d in drivers if d['driver'] not in dnf_driver_names]
+        active_drivers_count = len(full_race_drivers)
 
         while (st.session_state.race_started and
-               any(v < 100 for i, v in enumerate(st.session_state.progress_values)
-                   if drivers[i]['driver'] not in dnf_driver_names) and
+               any(st.session_state.progress_values[i] < 100
+                   for i in range(22) if drivers[i]['driver'] in full_race_drivers) and
                not st.session_state.race_finished):
 
             for i in range(22):
